@@ -382,7 +382,7 @@ void main() {
 
   // Sand in the wind: each column of dots is carried upward at its own speed with a little
   // sideways sway, and grains erode away from the bottom up. Everything (the ink ground
-  // too) blows off, uncovering the paper underneath.
+  // too) blows off, leaving the canvas clear so the page's own paper shows through.
   float gone = 0.0;
   if (uDissolve > 0.0) {
     vec2 grid = uResolution / uCell;
@@ -442,7 +442,7 @@ void main() {
   float spread = length((cellUv - 0.5) * aspect) / length(aspect * 0.5);
   float appear = step(spread * 0.72 + bayer(cell + vec2(3.0, 5.0)) * 0.28, uIntro * 1.001);
   color = mix(color, uPaper, gone);
-  fragColor = vec4(mix(uInk, color, appear), 1.0);
+  fragColor = vec4(mix(uInk, color, appear), 1.0 - gone);
 }
 `;
 
@@ -507,7 +507,7 @@ const DitherVeil = ({
     if (!container) return undefined;
 
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio || 1, 2), alpha: false, antialias: false });
+    const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio || 1, 2), alpha: true, antialias: false });
     const gl = renderer.gl;
     const canvas = gl.canvas;
     canvas.style.display = 'block';

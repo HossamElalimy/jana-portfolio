@@ -279,23 +279,29 @@ export default function JanaSite() {
           const shown = Math.max(vh, vw / PORTRAIT_RATIO); // height of the image under "cover"
           return (0.5 - FACE_Y) * shown;
         };
+        // The name splits right off the screen; then, still pinned, the portrait starts to blow
+        // away like sand in the wind. It erodes from the bottom up, so it finishes just as
+        // "Selected work" slides up over it, and the hero never sits empty on screen.
+        const veil = { pinned: 0, covered: 0 };
+        const dissolve = () => void (veilDissolve.current = 0.3 * veil.pinned + 0.7 * veil.covered);
         gsap
-          .timeline({ scrollTrigger: { trigger: "[data-hero]", start: "top top", end: "+=110%", scrub: 0.8, pin: true, invalidateOnRefresh: true } })
+          .timeline({ scrollTrigger: { trigger: "[data-hero]", start: "top top", end: "+=140%", scrub: 0.8, pin: true, invalidateOnRefresh: true } })
           .fromTo("[data-hwin]", WIN, { ...WIN_OPEN, ease: "power2.inOut", immediateRender: false, duration: 1 }, 0)
           .fromTo(".hero-veil", { y: faceOffset }, { y: 0, ease: "power2.inOut", duration: 1 }, 0)
           // Over the dark portrait the name turns into a red outline with no fill
           .fromTo(".hero-title", { "--hl-fill": 1, "--hl-stroke": 0 }, { "--hl-fill": 0, "--hl-stroke": 1, ease: "power1.inOut", immediateRender: false, duration: 1 }, 0)
-          .to('[data-hside="l"]', { xPercent: -80, ease: "power2.in", duration: 1 }, 0)
-          .to('[data-hside="r"]', { xPercent: 80, ease: "power2.in", duration: 1 }, 0)
-          .to("[data-hsubw]", { opacity: 0, y: -40, ease: "none", duration: 1 }, 0);
+          .to('[data-hside="l"]', { xPercent: -115, ease: "power2.in", duration: 1 }, 0)
+          .to('[data-hside="r"]', { xPercent: 115, ease: "power2.in", duration: 1 }, 0)
+          .to("[data-hsubw]", { opacity: 0, y: -40, ease: "none", duration: 1 }, 0)
+          // Where the sand blows off, the page's paper shows through instead of the window's ink.
+          .set("[data-hwin]", { backgroundColor: "transparent" }, 1)
+          .to(veil, { pinned: 1, ease: "power1.in", duration: 0.4, onUpdate: dissolve }, 1);
 
-        // Then, as "Selected work" rises in, the portrait blows away like sand in the wind
-        // (no pin here, so the next section arrives straight away — no empty screen).
-        const veil = { v: 0 };
+        // Then "Selected work" slides up over the hero, which drifts behind it at half speed.
         gsap
-          .timeline({ scrollTrigger: { trigger: "#work", start: "top bottom", end: "top 20%", scrub: 0.6 } })
-          .to(veil, { v: 1, ease: "power1.in", duration: 1, onUpdate: () => void (veilDissolve.current = veil.v) }, 0)
-          .to(".hero-title", { opacity: 0, ease: "none", duration: 0.5 }, 0.15);
+          .timeline({ scrollTrigger: { trigger: "#work", start: "top bottom", end: "top top", scrub: true } })
+          .fromTo("[data-hstage]", { yPercent: 0 }, { yPercent: 50, ease: "none", duration: 1 }, 0)
+          .to(veil, { covered: 1, ease: "none", duration: 1, onUpdate: dissolve }, 0);
 
         $("[data-rise]").forEach((el) =>
           gsap.from(el, { yPercent: 100, duration: 1.2, ease: E, scrollTrigger: { trigger: el.parentElement, start: "top 88%" } }),
@@ -376,6 +382,15 @@ export default function JanaSite() {
 
           const flight = { p: 0 };
           const LAND = 0.42; // share of the scroll spent dropping and bouncing on the rule
+          // Once the ball reaches the card it melts away on a short timer, not with the scroll,
+          // so stopping mid-way never leaves a half-faded ball hanging over the carousel.
+          const MELT_AT = 0.8;
+          const melt = { v: 1, on: false };
+          const setMelt = (on: boolean) => {
+            if (melt.on === on) return;
+            melt.on = on;
+            gsap.to(melt, { v: on ? 0 : 1, duration: on ? 0.45 : 0.3, ease: "power1.out", overwrite: true, onUpdate: place });
+          };
           const place = () => {
             const p = flight.p;
             const home = ballHome();
@@ -394,12 +409,18 @@ export default function JanaSite() {
                 py = landY;
                 alpha = 1 - q;
               } else {
-                px = home.x + (to.x - home.x) * e;
+                // If "Ball on Blue" is off screen (narrow phones, or the carousel was moved),
+                // drop straight into the carousel instead of flying out of view.
+                const onScreen = to.x > window.scrollX + to.d / 2 && to.x < window.scrollX + window.innerWidth - to.d / 2;
+                const toX = onScreen ? to.x : home.x;
+                px = home.x + (toX - home.x) * e;
                 py = landY + (to.y - landY) * e - Math.sin(Math.PI * e) * 70; // a small hop on the way
                 scale = 1 + (to.d / home.d - 1) * e;
-                alpha = q < 0.84 ? 1 : 1 - (q - 0.84) / 0.16; // melt into the painted ball
               }
+              setMelt(q >= MELT_AT); // melt into the painted ball
             }
+            if (p <= LAND) setMelt(false);
+            alpha *= melt.v;
             // The wrapper lives inside the scaled painting, so undo that scale; it scales around
             // the lifted ball's centre (76% / 16% of the wrapper).
             gsap.set(ballWrap, {
@@ -847,83 +868,86 @@ export default function JanaSite() {
         <main id="main" tabIndex={-1}>
           {/* ── Hero ── */}
           <section id="top" data-hero="" className="hero" aria-label={copy.hero.label} tabIndex={-1}>
-            <div data-hwin="" data-hero-pre="" className="hero-win">
-              {HERO.map((img, i) => (
-                <Image
-                  key={img.src}
-                  data-hi=""
-                  src={img}
-                  alt=""
-                  fill
-                  // Only ever seen inside the small window; the portrait covers them at full bleed.
-                  sizes="(min-width: 900px) 40vw, 64vw"
-                  quality={85}
-                  // Frames start inside a closed window and are revealed in sequence, so none is preloaded.
-                  fetchPriority={i === 0 ? "high" : "auto"}
-                  placeholder="blur"
-                  className="hero-img"
-                />
-              ))}
-              {/* Jana, dithered in ink on paper; the cursor (or a slow wander on touch) reveals the photo. */}
-              <div data-hi="" className="hero-veil">
-                <DitherVeil
-                  src={VEIL_SRC}
-                  fit="cover"
-                  pattern="floyd"
-                  pixelSize={2}
-                  levels={2}
-                  palette="duotone"
-                  inkColor="#201e1d"
-                  paperColor="#f3f2f2"
-                  contrast={1.2}
-                  brightness={0.02}
-                  revealRadius={170}
-                  softness={0.6}
-                  linger={1.1}
-                  rimColor="#ec3013"
-                  rim={0.22}
-                  wander
-                  clickBurst
-                  twinkle
-                  dissolve={veilDissolve}
-                />
+            {/* Everything in the hero rides on one stage, so it can drift behind "Selected work". */}
+            <div data-hstage="" className="hero-stage">
+              <div data-hwin="" data-hero-pre="" className="hero-win">
+                {HERO.map((img, i) => (
+                  <Image
+                    key={img.src}
+                    data-hi=""
+                    src={img}
+                    alt=""
+                    fill
+                    // Only ever seen inside the small window; the portrait covers them at full bleed.
+                    sizes="(min-width: 900px) 40vw, 64vw"
+                    quality={85}
+                    // Frames start inside a closed window and are revealed in sequence, so none is preloaded.
+                    fetchPriority={i === 0 ? "high" : "auto"}
+                    placeholder="blur"
+                    className="hero-img"
+                  />
+                ))}
+                {/* Jana, dithered in ink on paper; the cursor (or a slow wander on touch) reveals the photo. */}
+                <div data-hi="" className="hero-veil">
+                  <DitherVeil
+                    src={VEIL_SRC}
+                    fit="cover"
+                    pattern="floyd"
+                    pixelSize={2}
+                    levels={2}
+                    palette="duotone"
+                    inkColor="#201e1d"
+                    paperColor="#f3f2f2"
+                    contrast={1.2}
+                    brightness={0.02}
+                    revealRadius={170}
+                    softness={0.6}
+                    linger={1.1}
+                    rimColor="#ec3013"
+                    rim={0.22}
+                    wander
+                    clickBurst
+                    twinkle
+                    dissolve={veilDissolve}
+                  />
+                </div>
               </div>
-            </div>
-            <h1 className="hero-title" data-hero-pre="">
-              <span className="sr-only">{copy.hero.h1}</span>
-              <span data-hside="l" aria-hidden="true" className="hero-side">
-                <HeroLetter>J</HeroLetter>
-                <HeroLetter>A</HeroLetter>
-              </span>
-              <span data-hside="r" aria-hidden="true" className="hero-side">
-                <HeroLetter>N</HeroLetter>
-                <HeroLetter>A</HeroLetter>
-              </span>
-            </h1>
-            {/* Where the name crosses the dark window its ink letters vanish, so a twin of the name,
-                clipped to the window, redraws them there as a fine paper outline. It shares the
-                letters' data hooks, so it rises, splits and fades with them. */}
-            <div ref={ghostRef} data-hero-pre="" aria-hidden="true" className="hero-title hero-ghost">
-              <span data-hside="l" className="hero-side">
-                <HeroLetter>J</HeroLetter>
-                <HeroLetter>A</HeroLetter>
-              </span>
-              <span data-hside="r" className="hero-side">
-                <HeroLetter>N</HeroLetter>
-                <HeroLetter>A</HeroLetter>
-              </span>
-            </div>
-            <div data-hsubw="" data-hero-pre="" className="hero-sub" aria-hidden="true">
-              <span className="mask">
-                <span data-hsub="" className="hero-sub-text">
-                  {copy.hero.sub1}
+              <h1 className="hero-title" data-hero-pre="">
+                <span className="sr-only">{copy.hero.h1}</span>
+                <span data-hside="l" aria-hidden="true" className="hero-side">
+                  <HeroLetter>J</HeroLetter>
+                  <HeroLetter>A</HeroLetter>
                 </span>
-              </span>
-              <span className="mask">
-                <span data-hsub="" className="hero-sub-text">
-                  {copy.hero.sub2}
+                <span data-hside="r" aria-hidden="true" className="hero-side">
+                  <HeroLetter>N</HeroLetter>
+                  <HeroLetter>A</HeroLetter>
                 </span>
-              </span>
+              </h1>
+              {/* Where the name crosses the dark window its ink letters vanish, so a twin of the name,
+                  clipped to the window, redraws them there as a fine paper outline. It shares the
+                  letters' data hooks, so it rises, splits and fades with them. */}
+              <div ref={ghostRef} data-hero-pre="" aria-hidden="true" className="hero-title hero-ghost">
+                <span data-hside="l" className="hero-side">
+                  <HeroLetter>J</HeroLetter>
+                  <HeroLetter>A</HeroLetter>
+                </span>
+                <span data-hside="r" className="hero-side">
+                  <HeroLetter>N</HeroLetter>
+                  <HeroLetter>A</HeroLetter>
+                </span>
+              </div>
+              <div data-hsubw="" data-hero-pre="" className="hero-sub" aria-hidden="true">
+                <span className="mask">
+                  <span data-hsub="" className="hero-sub-text">
+                    {copy.hero.sub1}
+                  </span>
+                </span>
+                <span className="mask">
+                  <span data-hsub="" className="hero-sub-text">
+                    {copy.hero.sub2}
+                  </span>
+                </span>
+              </div>
             </div>
           </section>
 
