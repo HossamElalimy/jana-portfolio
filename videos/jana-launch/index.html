@@ -36,6 +36,15 @@
         background: var(--paper); font-size: 8.5px; font-weight: 600; line-height: 14px; text-align: center; color: var(--muted);
       }
       .win img { position: absolute; left: 0; top: 24px; width: 100%; height: calc(100% - 24px); display: block; }
+      .win img.mob { display: none; }
+      /* mobile cut: the site's phone layout, in a phone, lying on the paper */
+      #root.phone .win img.desk, #root.phone .win .bar { display: none; }
+      #root.phone .win img.mob { display: block; top: 0; height: 100%; }
+      #root.phone .win .inner { border: 12px solid var(--ink); border-radius: 44px; }
+      #root.phone .win .inner::after {
+        content: ""; position: absolute; left: 50%; top: 9px; width: 64px; height: 17px; margin-left: -32px;
+        border-radius: 9px; background: var(--ink);
+      }
 
       /* the end card is drawn on the same sheet */
       #endcard { position: absolute; text-align: center; color: var(--ink); }
@@ -68,6 +77,7 @@
       #hud2 { display: none; }
       #root.portrait #hud2 { display: block; }
       #hud2 .word { left: 60px; width: 960px; top: 1330px; }
+      #root.phone #hud2 .word { top: 1660px; }
 
       /* ── the ball: one object for the whole film ── */
       #fx { pointer-events: none; }
@@ -89,7 +99,7 @@
       </filter>
     </svg>
 
-    <div id="root" data-composition-id="main" data-start="0" data-duration="18.8" data-width="1920" data-height="1080">
+    <div id="root" data-composition-id="main" data-start="0" data-duration="18.8" data-width="1920" data-height="1080" data-screens="desktop">
 
       <!-- the whole film is one take over this sheet -->
       <div id="scene" class="clip" data-start="0" data-duration="18.8" data-track-index="0">
@@ -100,10 +110,10 @@
           <div class="work" id="p4"><div class="inner"><img src="assets/paintings/jana-painting-05.jpg" alt="Gold Leaf" /></div></div>
           <div class="work" id="p5"><div class="inner"><img src="assets/paintings/jana-painting-06.jpg" alt="Lilac" /></div></div>
 
-          <div class="win" id="w0"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/art-1400.png" alt="Fine art section" /></div></div>
-          <div class="win" id="w1"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/art-3500.png" alt="Paintings carousel" /></div></div>
-          <div class="win" id="w2"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/design-600.png" alt="Graphic design" /></div></div>
-          <div class="win" id="w3"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/work-0.png" alt="Selected work" /></div></div>
+          <div class="win" id="w0"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img class="mob" src="assets/mobile/scroll-010.png" alt="" /><img class="desk" src="assets/desk/art-1400.png" alt="Fine art section" /></div></div>
+          <div class="win" id="w1"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img class="mob" src="assets/mobile/scroll-014.png" alt="" /><img class="desk" src="assets/desk/art-3500.png" alt="Paintings carousel" /></div></div>
+          <div class="win" id="w2"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img class="mob" src="assets/mobile/design-1.png" alt="" /><img class="desk" src="assets/desk/design-600.png" alt="Graphic design" /></div></div>
+          <div class="win" id="w3"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img class="mob" src="assets/mobile/scroll-004.png" alt="" /><img class="desk" src="assets/desk/work-0.png" alt="Selected work" /></div></div>
 
           <!-- Ball on Blue sits above its own card in the Fine-art window -->
           <div class="work" id="p6"><div class="inner"><img src="assets/paintings/jana-painting-02.jpg" alt="Ball on Blue" /></div></div>
@@ -192,10 +202,14 @@
       const T = [2.75, 3.95, 4.85, 5.5, 6.0];
       const D = 120; // the ball on the sheet = Ball on Blue's painted ball
 
-      // Windows: desktop screenshots scaled so the Fine-art card lands exactly on Ball on Blue.
-      const K = 270 / 697, WW = 1920 * K, WH = 1080 * K, BAR = 24;
+      // Windows: site screenshots scaled so the Fine-art card lands exactly on Ball on Blue.
+      // Desktop: browser windows (card 697px wide at 917.5, 540). Mobile cut: phones (card 860px wide at 537, 961.5).
+      const PHONE = ROOT.dataset.screens === "phone";
+      const SCR = PHONE ? { w: 1080, h: 1919, card: 860, cx: 537, cy: 961.5 } : { w: 1920, h: 1080, card: 697, cx: 917.5, cy: 540 };
+      const K = 270 / SCR.card, WW = SCR.w * K, WH = SCR.h * K, BAR = PHONE ? 0 : 24, BZ = PHONE ? 12 : 0;
+      if (PHONE) ROOT.classList.add("phone");
       const WIN = [
-        { id: "w0", cx: 0 - 917.5 * K + WW / 2, cy: 4750 - 540 * K + WH / 2, hit: [0, 4741], tin: 9.15 },
+        { id: "w0", cx: 0 - SCR.cx * K + WW / 2, cy: 4750 - SCR.cy * K + WH / 2, hit: [0, 4741], tin: 9.15 },
         { id: "w1", cx: 1150, cy: 4640, hit: [1030, 4735], tin: 10.75 },
         { id: "w2", cx: 2280, cy: 4840, hit: [2380, 4925], tin: 11.5 },
         { id: "w3", cx: 3410, cy: 4700, hit: [3330, 4800], tin: 12.25 },
@@ -258,7 +272,9 @@
         { t: 12.6, cx: 3410, cy: 4688, z: 1.38, ay: 900 },
         { t: 13.75, cx: 4560, cy: 4727, z: 0.96, ay: 960, e: "expoInOut" },
         { t: END, cx: 4560, cy: 4727, z: 0.96, ay: 960 },
-      ].map((k) => ({ ax: 540, ...k }));
+      ].map((k) => ({ ax: 540, ...k }))
+        // phones fill a tall frame at 2.24x instead of 1.38x, a little higher to leave room for the words
+        .map((k) => (PHONE && Math.abs(k.z - 1.38) < 1e-6 ? { ...k, z: 2.24, ay: 860 } : k));
       const CK = PORTRAIT ? CK_PORTRAIT : CK_LANDSCAPE;
       function cam(t) {
         let i = 0;
@@ -407,11 +423,11 @@
         });
         // windows: the first opens around the painting; the rest grow out of each bounce
         WIN.forEach((w, i) => {
-          const el = wins[i], left = w.cx - WW / 2, top = w.cy - WH / 2 - BAR;
+          const el = wins[i], left = w.cx - WW / 2 - BZ, top = w.cy - WH / 2 - BAR - BZ;
           el.style.left = `${left}px`; el.style.top = `${top}px`;
-          el.style.width = `${WW}px`; el.style.height = `${WH + BAR}px`;
+          el.style.width = `${WW + 2 * BZ}px`; el.style.height = `${WH + BAR + 2 * BZ}px`;
           const r0 = i === 0 ? 200 : 0;
-          const r = lerp(r0, Math.hypot(WW, WH + BAR), ease.expoOut(prog(t, w.tin, w.tin + (i === 0 ? 0.7 : 0.5))));
+          const r = lerp(r0, Math.hypot(WW + 2 * BZ, WH + BAR + 2 * BZ), ease.expoOut(prog(t, w.tin, w.tin + (i === 0 ? 0.7 : 0.5))));
           const vis = t >= w.tin ? 1 : 0;
           el.style.opacity = vis;
           el.firstElementChild.style.clipPath = `circle(${r.toFixed(2)}px at ${w.hit[0] - left}px ${w.hit[1] - top}px)`;

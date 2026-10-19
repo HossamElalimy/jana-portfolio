@@ -6,6 +6,7 @@
 **/audio.log
 # generated: the portrait cut is built from jana-launch/index.html by tools/make-portrait.py
 jana-launch-portrait/
+jana-launch-mobile/
 # raw site capture and the v1 (phone-screen) material; reproducible with `hyperframes capture` / tools/site-shots.py
 jana-launch/capture/
 jana-launch/assets/site/
