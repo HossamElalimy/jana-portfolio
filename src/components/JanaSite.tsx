@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -40,6 +40,72 @@ const LIFT = { scale: 1.38, yPercent: -34 };
 const SLICES_END_SCALE = 0.9;
 
 const canHover = () => window.matchMedia("(min-width: 900px) and (hover: hover)").matches;
+
+/* ── Viewer images ───────────────────────────────────────────────────────
+   The viewer shows an optimised, screen-sized copy (not the original file),
+   downloaded ahead of time on hover/focus/press so opening feels instant. */
+const VIEWER_SIZES = "(min-width: 900px) 84vw, 100vw";
+type ViewerImage = { srcSet: string; src: string; sizes?: string; ready?: Promise<void> };
+const viewerCache = new Map<string, ViewerImage>();
+
+function viewerImage(id: string): ViewerImage {
+  let v = viewerCache.get(id);
+  if (!v) {
+    const { props } = getImageProps({ src: BY_ID[id].img, alt: "", sizes: VIEWER_SIZES, quality: 85 });
+    v = { srcSet: props.srcSet ?? "", src: props.src };
+    viewerCache.set(id, v);
+  }
+  return v;
+}
+
+/** Width the work will occupy in the viewer, so the browser picks a file of that size. */
+function viewerSlot(id: string): string {
+  const stage = document.querySelector<HTMLElement>(".lb-stage");
+  const { width, height } = BY_ID[id].img;
+  if (!stage || !stage.clientWidth) return VIEWER_SIZES;
+  return `${Math.round(Math.min(stage.clientWidth, stage.clientHeight * (width / height)))}px`;
+}
+
+/** Starts downloading and decoding a work's viewer image; resolves when it is ready. */
+function warm(id: string): Promise<void> {
+  const v = viewerImage(id);
+  if (!v.ready) {
+    // The same `sizes` is reused when the image is shown, so it hits this download.
+    v.sizes = viewerSlot(id);
+    const pre = new window.Image();
+    pre.decoding = "async";
+    pre.sizes = v.sizes;
+    pre.srcset = v.srcSet;
+    pre.src = v.src;
+    v.ready = pre.decode().catch(() => undefined);
+  }
+  return v.ready;
+}
+
+function applyViewerImage(im: HTMLImageElement, id: string) {
+  const v = viewerImage(id);
+  im.sizes = v.sizes ?? viewerSlot(id);
+  im.srcset = v.srcSet;
+  im.src = v.src;
+}
+
+/** Sizes the viewer image to the largest box of the work's ratio that fits the stage. */
+function fitViewerImage(im: HTMLImageElement, id: string) {
+  const stage = im.parentElement;
+  if (!stage) return;
+  const { width, height } = BY_ID[id].img;
+  const r = width / height;
+  const w = Math.min(stage.clientWidth, stage.clientHeight * r);
+  im.style.width = `${Math.round(w)}px`;
+  im.style.height = `${Math.round(w / r)}px`;
+}
+
+/** Event handlers that pre-load a work's viewer image before it is opened. */
+const primeProps = (id: string) => ({
+  onPointerEnter: () => void warm(id),
+  onPointerDown: () => void warm(id),
+  onFocus: () => void warm(id),
+});
 
 export default function JanaSite() {
   const [filter, setFilter] = useState<Filter>("all");
@@ -224,6 +290,27 @@ export default function JanaSite() {
           ),
         );
 
+        // Looping lines (About, Contact): they keep moving on their own instead of
+        // following the scroll, so the end of the page never freezes mid-sentence.
+        // Speed is relative to the viewport, so it feels the same on every screen,
+        // and each loop only runs while it is on screen.
+        const speed = window.innerWidth * 0.045; // px per second
+        $("[data-marquee]").forEach((el) => {
+          const reverse = el.dataset.marquee === "r";
+          const duration = el.scrollWidth / 2 / speed;
+          gsap.fromTo(
+            el,
+            { xPercent: reverse ? -50 : 0 },
+            {
+              xPercent: reverse ? 0 : -50,
+              ease: "none",
+              duration,
+              repeat: -1,
+              scrollTrigger: { trigger: el, start: "top bottom", end: "bottom top", toggleActions: "play pause resume pause" },
+            },
+          );
+        });
+
         $("[data-kin]").forEach((el) => {
           const r = el.dataset.kin === "r";
           gsap.fromTo(
@@ -368,6 +455,15 @@ export default function JanaSite() {
       }
       if (!from && pvShownRef.current && pvRef.current) from = pvRef.current.getBoundingClientRect();
 
+      // Open instantly on the copy the browser already has (the thumbnail that was
+      // clicked, or the hover preview), then swap in the sharp copy once it is ready.
+      const thumbs = [src, pvRef.current?.querySelector<HTMLImageElement>(`[data-id="${id}"]`)];
+      const cached = thumbs.find((t) => t && t.complete && t.naturalWidth > 0)?.currentSrc;
+      const ready = warm(id);
+      const i = ids.indexOf(id);
+      void warm(ids[(i + 1) % ids.length]);
+      void warm(ids[(i - 1 + ids.length) % ids.length]);
+
       curRef.current = id;
       listRef.current = ids;
       flushSync(() => {
@@ -375,24 +471,34 @@ export default function JanaSite() {
         setCur(id);
       });
       lockScroll(true);
-      im.src = BY_ID[id].img.src;
+      fitViewerImage(im, id);
+      if (cached) {
+        im.removeAttribute("srcset");
+        im.removeAttribute("sizes");
+        im.src = cached;
+        ready.then(() => {
+          if (curRef.current === id) applyViewerImage(im, id);
+        });
+      } else {
+        applyViewerImage(im, id);
+      }
 
       const show = () => {
         if (curRef.current !== id) return;
         ov.style.visibility = "visible";
         ovCloseRef.current?.focus({ preventScroll: true });
         if (reduceRef.current) return;
-        gsap.fromTo(ovBgRef.current, { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.9, ease: "expo.inOut" });
+        gsap.fromTo(ovBgRef.current, { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.75, ease: "expo.inOut" });
         const to = im.getBoundingClientRect();
         if (from && to.width)
           gsap.fromTo(
             im,
             { x: from.left - to.left, y: from.top - to.top, scale: from.width / to.width, transformOrigin: "0 0" },
-            { x: 0, y: 0, scale: 1, duration: 1.15, ease: "expo.inOut" },
+            { x: 0, y: 0, scale: 1, duration: 0.95, ease: "expo.inOut" },
           );
         else
-          gsap.fromTo(im, { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1, ease: "expo.inOut", delay: 0.2 });
-        gsap.fromTo("[data-om]", { yPercent: 110 }, { yPercent: 0, duration: 1, ease: "expo.out", stagger: 0.06, delay: 0.55 });
+          gsap.fromTo(im, { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.85, ease: "expo.inOut", delay: 0.1 });
+        gsap.fromTo("[data-om]", { yPercent: 110 }, { yPercent: 0, duration: 0.9, ease: "expo.out", stagger: 0.06, delay: 0.4 });
       };
       im.decode().then(show, show);
     },
@@ -416,7 +522,7 @@ export default function JanaSite() {
     gsap.killTweensOf([ovImgRef.current, ovBgRef.current, "[data-om]"]);
     gsap.to(ov.children, {
       clipPath: "inset(0% 0% 100% 0%)",
-      duration: 0.8,
+      duration: 0.65,
       ease: "expo.inOut",
       onComplete: () => {
         gsap.set(ov.children, { clearProps: "clipPath" });
@@ -433,24 +539,41 @@ export default function JanaSite() {
     const ids = listRef.current.length ? listRef.current : ALL_IDS;
     const id = ids[(ids.indexOf(now) + dir + ids.length) % ids.length];
     steppingRef.current = true;
-    const swap = () => {
-      im.src = BY_ID[id].img.src;
-      curRef.current = id;
-      setCur(id);
-      const reveal = () => {
-        steppingRef.current = false;
-        if (reduceRef.current) return;
-        gsap.fromTo(
-          im,
-          { clipPath: dir > 0 ? "inset(0% 0% 0% 100%)" : "inset(0% 100% 0% 0%)" },
-          { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8, ease: "expo.out" },
-        );
-        gsap.fromTo("[data-om]", { yPercent: 110 }, { yPercent: 0, duration: 0.8, ease: "expo.out", stagger: 0.05 });
-      };
-      im.decode().then(reveal, reveal);
-    };
-    if (reduceRef.current) return swap();
+    const at = ids.indexOf(id);
+    void warm(ids[(at + dir + ids.length) % ids.length]);
+    // The next image was pre-loaded when the viewer opened, so this rarely waits.
+    const swap = () =>
+      warm(id).then(() => {
+        if (curRef.current !== now) return;
+        fitViewerImage(im, id);
+        applyViewerImage(im, id);
+        curRef.current = id;
+        setCur(id);
+        const reveal = () => {
+          steppingRef.current = false;
+          if (reduceRef.current) return;
+          gsap.fromTo(
+            im,
+            { clipPath: dir > 0 ? "inset(0% 0% 0% 100%)" : "inset(0% 100% 0% 0%)" },
+            { clipPath: "inset(0% 0% 0% 0%)", duration: 0.8, ease: "expo.out" },
+          );
+          gsap.fromTo("[data-om]", { yPercent: 110 }, { yPercent: 0, duration: 0.8, ease: "expo.out", stagger: 0.05 });
+        };
+        im.decode().then(reveal, reveal);
+      });
+    if (reduceRef.current) return void swap();
     gsap.to(im, { clipPath: dir > 0 ? "inset(0% 100% 0% 0%)" : "inset(0% 0% 0% 100%)", duration: 0.45, ease: "expo.in", onComplete: swap });
+  }, []);
+
+  /* ── Keep the viewer image fitted when the window changes size ────────── */
+  useEffect(() => {
+    const onResize = () => {
+      const id = curRef.current;
+      const im = ovImgRef.current;
+      if (id && im) fitViewerImage(im, id);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   /* ── Keyboard: Escape, arrows in the viewer, and a focus trap for dialogs */
@@ -580,7 +703,7 @@ export default function JanaSite() {
                   src={img}
                   alt=""
                   fill
-                  sizes="100vw"
+                  sizes={i === HERO.length - 1 ? "100vw" : "(min-width: 900px) 40vw, 64vw"}
                   quality={85}
                   // Frames start inside a closed window and are revealed in sequence, so none is preloaded.
                   fetchPriority={i === 0 ? "high" : "auto"}
@@ -643,6 +766,7 @@ export default function JanaSite() {
                     aria-label={`${copy.work.open} ${w.title}`}
                     onClick={(e) => open(id, e.currentTarget, selected)}
                     onMouseEnter={() => pvEnter(id)}
+                    {...primeProps(id)}
                   >
                     <span className="row-main">
                       <span className="row-num">{pad(i + 1)}</span>
@@ -716,6 +840,7 @@ export default function JanaSite() {
                       aria-haspopup="dialog"
                       aria-label={`${copy.work.open} ${w.title}`}
                       onClick={(e) => open(id, e.currentTarget, ART_LIST)}
+                      {...primeProps(id)}
                     >
                       <span className="gal-frame">
                         <Image src={w.img} alt={w.title} fill sizes="(min-width: 900px) 62vh, 76vw" placeholder="blur" className="cover" />
@@ -777,18 +902,14 @@ export default function JanaSite() {
           <section id="about" data-about="" className="about" aria-labelledby="about-title" tabIndex={-1}>
             <div className="about-stage">
               <div aria-hidden="true" className="about-kin about-kin-top">
-                <div data-kin="l" className="kin kin-about display">
-                  {copy.about.marquee1}
-                </div>
+                <Marquee text={copy.about.marquee1} repeat={4} className="kin kin-about display" />
               </div>
               <figure data-portrait="" className="portrait">
                 <Image src={portrait} alt={copy.about.portraitAlt} fill sizes="(min-width: 900px) 46vh, 64vw" className="cover portrait-img" />
               </figure>
               <span data-abball="" aria-hidden="true" className="about-ball" />
               <div aria-hidden="true" className="about-kin about-kin-bottom">
-                <div data-kin="r" className="kin kin-about kin-red display">
-                  {copy.about.marquee2}
-                </div>
+                <Marquee text={copy.about.marquee2} repeat={4} reverse className="kin kin-about kin-red display" />
               </div>
             </div>
             <div className="about-text">
@@ -805,9 +926,7 @@ export default function JanaSite() {
               {copy.contact.label}
             </h2>
             <div className="mask">
-              <div data-kin="l" aria-hidden="true" className="kin kin-contact display">
-                {copy.contact.marquee}
-              </div>
+              <Marquee text={copy.contact.marquee} repeat={3} className="kin kin-contact display" />
             </div>
             <div className="contact-grid">
               <div className="contact-main">
@@ -897,6 +1016,23 @@ export default function JanaSite() {
   );
 }
 
+/** A line of type that loops endlessly; two identical halves make the -50% wrap seamless. */
+function Marquee({ text, repeat, reverse = false, className }: { text: string; repeat: number; reverse?: boolean; className: string }) {
+  return (
+    <div data-marquee={reverse ? "r" : "l"} aria-hidden="true" className={`marquee-track ${className}`}>
+      {[0, 1].map((half) => (
+        <span key={half} className="marquee-half">
+          {Array.from({ length: repeat }, (_, i) => (
+            <span key={i} className="marquee-unit">
+              {text}
+            </span>
+          ))}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function HeroLetter({ children }: { children: string }) {
   return (
     <span className="hero-letter-mask">
@@ -926,6 +1062,7 @@ function DesignCard({ id, n, className, sizes, onOpen }: DesignCardProps) {
         aria-haspopup="dialog"
         aria-label={`${copy.work.open} ${w.title}`}
         onClick={(e) => onOpen(id, e.currentTarget, DESIGN_LIST)}
+        {...primeProps(id)}
       >
         <Image src={w.img} alt={`${w.title} — ${w.label}`} fill sizes={sizes} placeholder="blur" className="cover" />
       </button>

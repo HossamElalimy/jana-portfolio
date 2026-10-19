@@ -43,15 +43,16 @@ export const copy = {
     concept: "Concept",
   },
   about: {
-    marquee1: "Paints Paints Paints",
-    marquee2: "Designs Designs Designs",
+    marquee1: "Paints",
+    marquee2: "Designs",
     portraitAlt: "Portrait of Jana Ezzeldin",
     title: "Jana is an artist and a graphic designer.",
     body: "One practice, two languages: paint on canvas, and type on the grid. The colour of the studio carries into the design work, and the discipline of the design work carries back into the paintings.",
   },
   contact: {
     label: "Contact",
-    marquee: "Let’s make something — Let’s make something",
+    /** One unit of the looping marquee; repeated to fill the line seamlessly. */
+    marquee: "Let’s make something —",
     kicker: "Commissions, design projects, collaborations",
     cta: "Send Jana a message on Instagram.",
     copyright: "© 2026 Jana Ezzeldin",

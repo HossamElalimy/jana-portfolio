@@ -1047,6 +1047,24 @@ html.js-motion [data-hero-pre] {
   color: var(--paper);
 }
 
+.marquee-track {
+  display: flex;
+  width: max-content;
+  /* Own compositor layer: the loop moves without repainting the page. */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.marquee-half {
+  display: flex;
+  flex: none;
+}
+
+.marquee-unit {
+  flex: none;
+  padding-inline-end: 0.28em;
+}
+
 .kin-contact {
   font-size: clamp(80px, 15vw, 260px);
   line-height: 0.86;
@@ -1151,10 +1169,12 @@ html.js-motion [data-hero-pre] {
   justify-content: center;
 }
 
+/* Width and height are set in JS to fit the stage at the work's own ratio. */
 .lb-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  background: var(--char);
 }
 
 .lb-foot {
