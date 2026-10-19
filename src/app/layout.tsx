@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: seo.title, template: seo.titleTemplate },
   description: seo.description,
-  keywords: seo.keywords,
+  keywords: [...seo.keywords, ...seo.nameVariants],
   applicationName: copy.brandSub,
   authors: [{ name: copy.name, url: INSTAGRAM_URL }],
   creator: copy.name,

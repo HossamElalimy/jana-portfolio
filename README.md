@@ -44,3 +44,24 @@ cp .env.example .env.local   # NEXT_PUBLIC_SITE_URL=https://your-domain
   They are labelled on the site as stand-ins / concepts, not Jana's work.
 
 To add real work, drop the image into `src/assets/`, import it in `src/lib/works.ts`, and set `real: true`.
+
+### Adding a painting from a phone photo
+
+Keep the raw photo in `source-photos/`, then straighten it to the canvas (perspective-corrected, cropped
+inside the edge, gently levelled) by giving the canvas corners in the photo — top-left, top-right,
+bottom-right, bottom-left:
+
+```bash
+node scripts/straighten-painting.mjs source-photos/photo.jpeg src/assets/jana-painting-05.jpg "8,91 1184,43 1181,1284 1,1215"
+```
+
+## Search (Google Search Console)
+
+- Ownership is verified with `public/googlebdb60c101da1d1b9.html` — **don't delete it**.
+- In Search Console → **Sitemaps**, submit `https://paintingsbyjana.vercel.app/sitemap.xml`
+  (it lists the page plus Jana's portrait, studio photo and original paintings for Google Images).
+- Use **URL inspection → Request indexing** on the home page after each significant update.
+- Name variants (Arabic, transliterations, common misspellings) live in `seo.nameVariants` in
+  `src/lib/content.ts`; they feed the JSON-LD `alternateName` list and the keywords tag.
+- If you move to a custom domain, set `NEXT_PUBLIC_SITE_URL` in Vercel and add the new domain as a
+  property in Search Console.
