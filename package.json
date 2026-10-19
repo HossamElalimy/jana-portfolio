@@ -1,0 +1,30 @@
+{
+  "name": "jana-portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "paint": "node scripts/paint/paint.mjs",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0",
+    "lenis": "^1.3.27",
+    "next": "16.4.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.11",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "sharp": "^0.35.5",
+    "typescript": "^5"
+  }
+}
