@@ -1,0 +1,16 @@
+# HyperFrames working state, caches and installs
+**/node_modules/
+**/.hyperframes/
+**/.thumbnails/
+**/.media/
+**/audio.log
+# generated: the portrait cut is built from jana-launch/index.html by tools/make-portrait.py
+jana-launch-portrait/
+# raw site capture and the v1 (phone-screen) material; reproducible with `hyperframes capture` / tools/site-shots.py
+jana-launch/capture/
+jana-launch/assets/site/
+jana-launch/assets/bgm/track.mp3
+# intermediate renders; the mastered finals are kept
+jana-launch/renders/*
+!jana-launch/renders/paintingsbyjana-launching-soon-16x9.mp4
+!jana-launch/renders/paintingsbyjana-launching-soon-9x16.mp4

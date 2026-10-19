@@ -193,6 +193,25 @@ export default function JanaSite() {
     else lenisRef.current?.start();
   }, []);
 
+  /* ── Hero: keep the name's paper-outline twin clipped to the window, whatever it is doing ── */
+  const ghostRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const ghost = ghostRef.current;
+    const win = document.querySelector<HTMLElement>("[data-hwin]");
+    if (!ghost || !win) return;
+    let id = 0;
+    const sync = () => {
+      const g = ghost.getBoundingClientRect();
+      if (g.bottom > 0 && g.top < window.innerHeight) {
+        const w = win.getBoundingClientRect();
+        ghost.style.clipPath = `inset(${w.top - g.top}px ${g.right - w.right}px ${g.bottom - w.bottom}px ${w.left - g.left}px)`;
+      }
+      id = requestAnimationFrame(sync);
+    };
+    id = requestAnimationFrame(sync);
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   /* ── Scroll choreography ─────────────────────────────────────────────── */
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -881,6 +900,19 @@ export default function JanaSite() {
                 <HeroLetter>A</HeroLetter>
               </span>
             </h1>
+            {/* Where the name crosses the dark window its ink letters vanish, so a twin of the name,
+                clipped to the window, redraws them there as a fine paper outline. It shares the
+                letters' data hooks, so it rises, splits and fades with them. */}
+            <div ref={ghostRef} data-hero-pre="" aria-hidden="true" className="hero-title hero-ghost">
+              <span data-hside="l" className="hero-side">
+                <HeroLetter>J</HeroLetter>
+                <HeroLetter>A</HeroLetter>
+              </span>
+              <span data-hside="r" className="hero-side">
+                <HeroLetter>N</HeroLetter>
+                <HeroLetter>A</HeroLetter>
+              </span>
+            </div>
             <div data-hsubw="" data-hero-pre="" className="hero-sub" aria-hidden="true">
               <span className="mask">
                 <span data-hsub="" className="hero-sub-text">

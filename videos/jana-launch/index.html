@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>The Rally — paintingsbyjana launching soon</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face{font-family:Archivo;font-style:normal;font-weight:100 900;font-stretch:100%;font-display:block;src:url("assets/fonts/captured-a2947afc6a06879b-s.138s14ivx2xer.woff2")format("woff2");unicode-range:U+102-103,U+110-111,U+128-129,U+168-169,U+1A0-1A1,U+1AF-1B0,U+300-301,U+303-304,U+308-309,U+323,U+329,U+1EA0-1EF9,U+20AB}
+      @font-face{font-family:Archivo;font-style:normal;font-weight:100 900;font-stretch:100%;font-display:block;src:url("assets/fonts/captured-651aaf1801011892-s.3b2emle-7szv-.woff2")format("woff2");unicode-range:U+100-2BA,U+2BD-2C5,U+2C7-2CC,U+2CE-2D7,U+2DD-2FF,U+304,U+308,U+329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+      @font-face{font-family:Archivo;font-style:normal;font-weight:100 900;font-stretch:100%;font-display:block;src:url("assets/fonts/captured-75affa71d1e2f6a7-s.p.13rul5q9jl2r0.woff2")format("woff2");unicode-range:U+??,U+131,U+152-153,U+2BB-2BC,U+2C6,U+2DA,U+2DC,U+304,U+308,U+329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+      :root { --ink: #201e1d; --paper: #f3f2f2; --red: #ec3013; --muted: #5b5756; --frame: #e4e2df; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); }
+      #root {
+        position: relative; width: 100%; height: 100%; overflow: hidden;
+        background: var(--paper); color: var(--ink); font-family: Archivo, system-ui, sans-serif;
+      }
+      .clip { position: absolute; inset: 0; }
+
+      /* ── one sheet of drawing paper; everything lives on it and one camera moves over it ── */
+      #scene { overflow: hidden; background-color: var(--paper); background-image: url("assets/parts/paper-texture.webp"); }
+      #world { position: absolute; left: 0; top: 0; width: 1px; height: 1px; transform-origin: 0 0; }
+      .work { position: absolute; filter: drop-shadow(0 16px 22px rgba(32, 30, 29, 0.2)); }
+      .work .inner { position: absolute; inset: 0; overflow: hidden; }
+      .work img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+      /* desktop browser windows of the site, lying on the paper */
+      .win { position: absolute; filter: drop-shadow(0 18px 26px rgba(32, 30, 29, 0.22)); }
+      .win .inner { position: absolute; inset: 0; overflow: hidden; border-radius: 7px; background: var(--paper); }
+      .win .bar { position: absolute; left: 0; right: 0; top: 0; height: 24px; background: var(--frame); border-bottom: 1px solid #d3d0cc; }
+      .win .bar i { position: absolute; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: #c9c5c3; }
+      .win .bar .url {
+        position: absolute; left: 50%; top: 5px; width: 240px; height: 14px; margin-left: -120px; border-radius: 7px;
+        background: var(--paper); font-size: 8.5px; font-weight: 600; line-height: 14px; text-align: center; color: var(--muted);
+      }
+      .win img { position: absolute; left: 0; top: 24px; width: 100%; height: calc(100% - 24px); display: block; }
+
+      /* the end card is drawn on the same sheet */
+      #endcard { position: absolute; text-align: center; color: var(--ink); }
+      #wm { font-weight: 900; line-height: 0.82; letter-spacing: -0.05em; white-space: nowrap; }
+      #wm .ch { display: inline-block; opacity: 0; }
+      #dotslot { display: inline-block; width: 0.2em; height: 0.2em; margin-left: 0.05em; vertical-align: baseline; }
+      #rule { position: absolute; height: 9px; width: 110px; background: var(--red); transform-origin: 50% 50%; }
+      #ls { position: absolute; left: 0; right: 0; font-weight: 800; line-height: 1; letter-spacing: -0.04em; white-space: nowrap; }
+      #ls .wd { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.14em; }
+      #ls .wd span { display: inline-block; }
+      #url, #handle { position: absolute; left: 0; right: 0; white-space: nowrap; opacity: 0; }
+      #url { font-weight: 700; letter-spacing: -0.01em; }
+      #handle { font-weight: 500; color: var(--muted); }
+
+      /* ── screen-space type over the rally ── */
+      .word {
+        position: absolute; left: 1080px; width: 760px; top: 455px; text-align: center;
+        font-weight: 900; line-height: 0.9; letter-spacing: -0.045em; white-space: nowrap; opacity: 0;
+      }
+      #stub { position: absolute; left: 1420px; top: 640px; width: 80px; height: 9px; background: var(--red); opacity: 0; }
+      .row { position: absolute; left: 64px; right: 64px; top: 1004px; height: 40px; font-size: 26px; font-weight: 700; overflow: hidden; }
+      .row span { position: absolute; top: 0; white-space: nowrap; opacity: 0; }
+      .row .r { right: 0; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; }
+      .row .l { left: 0; }
+      /* portrait cut: the words sit under each painting instead of beside it */
+      #root.portrait .word { left: 60px; width: 960px; top: 1290px; }
+      #root.portrait #stub { left: 500px; top: 1490px; }
+      #root.portrait .row { left: 56px; right: 56px; top: 1800px; }
+      /* portrait only: the windows leave tall paper free, so the site beat gets its words too */
+      #hud2 { display: none; }
+      #root.portrait #hud2 { display: block; }
+      #hud2 .word { left: 60px; width: 960px; top: 1330px; }
+
+      /* ── the ball: one object for the whole film ── */
+      #fx { pointer-events: none; }
+      #shadow {
+        position: absolute; left: 0; top: 0; width: 512px; height: 512px; border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(32, 30, 29, 0.55), rgba(32, 30, 29, 0) 100%); opacity: 0;
+      }
+      #ball { position: absolute; left: 0; top: 0; width: 512px; height: 512px; }
+      #ball img { position: absolute; inset: 0; width: 512px; height: 512px; }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <filter id="camblur" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+        <feGaussianBlur id="camblur-g" stdDeviation="0 0" />
+      </filter>
+      <filter id="ballblur" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+        <feGaussianBlur id="ballblur-g" stdDeviation="0 0" />
+      </filter>
+    </svg>
+
+    <div id="root" data-composition-id="main" data-start="0" data-duration="18.8" data-width="1920" data-height="1080">
+
+      <!-- the whole film is one take over this sheet -->
+      <div id="scene" class="clip" data-start="0" data-duration="18.8" data-track-index="0">
+        <div id="world" data-layout-allow-overflow>
+          <div class="work" id="p1"><div class="inner"><img src="assets/parts/painting-01-noball.jpg" alt="Figure in Motion" /></div></div>
+          <div class="work" id="p2"><div class="inner"><img src="assets/paintings/jana-painting-03.jpg" alt="Medusa" /></div></div>
+          <div class="work" id="p3"><div class="inner"><img src="assets/paintings/jana-painting-04.jpg" alt="Nefertiti" /></div></div>
+          <div class="work" id="p4"><div class="inner"><img src="assets/paintings/jana-painting-05.jpg" alt="Gold Leaf" /></div></div>
+          <div class="work" id="p5"><div class="inner"><img src="assets/paintings/jana-painting-06.jpg" alt="Lilac" /></div></div>
+
+          <div class="win" id="w0"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/art-1400.png" alt="Fine art section" /></div></div>
+          <div class="win" id="w1"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/art-3500.png" alt="Paintings carousel" /></div></div>
+          <div class="win" id="w2"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/design-600.png" alt="Graphic design" /></div></div>
+          <div class="win" id="w3"><div class="inner"><div class="bar"><i style="left:10px"></i><i style="left:21px"></i><i style="left:32px"></i><div class="url">paintingsbyjana.vercel.app</div></div><img src="assets/desk/work-0.png" alt="Selected work" /></div></div>
+
+          <!-- Ball on Blue sits above its own card in the Fine-art window -->
+          <div class="work" id="p6"><div class="inner"><img src="assets/paintings/jana-painting-02.jpg" alt="Ball on Blue" /></div></div>
+
+          <div id="endcard">
+            <div id="wm"><span class="ch">p</span><span class="ch">a</span><span class="ch">i</span><span class="ch">n</span><span class="ch">t</span><span class="ch">i</span><span class="ch">n</span><span class="ch">g</span><span class="ch">s</span><span class="ch">b</span><span class="ch">y</span><span class="ch">j</span><span class="ch">a</span><span class="ch">n</span><span class="ch">a</span><span id="dotslot"></span></div>
+            <div id="rule"></div>
+            <div id="ls"><span class="wd"><span id="ls1">launching</span></span> <span class="wd"><span id="ls2">soon</span></span></div>
+            <div id="url">paintingsbyjana.vercel.app</div>
+            <div id="handle">@paintingsbyjanaaa</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="hud" class="clip" data-start="0" data-duration="9.4" data-track-index="1">
+        <div class="word" id="w-1" data-layout-allow-overlap data-layout-allow-occlusion><span>jana’s</span></div>
+        <div class="word" id="w-2" data-layout-allow-overlap data-layout-allow-occlusion><span>paintings</span></div>
+        <div class="word" id="w-3" data-layout-allow-overlap data-layout-allow-occlusion><span>are getting</span></div>
+        <div class="word" id="w-4" data-layout-allow-overlap data-layout-allow-occlusion><span>a home.</span></div>
+        <div id="stub"></div>
+        <div class="row" data-layout-allow-overlap>
+          <span class="l" id="l1">Figure in Motion</span><span class="r" id="r1">01 / 06</span>
+          <span class="l" id="l2">Medusa</span><span class="r" id="r2">02 / 06</span>
+          <span class="l" id="l3">Nefertiti</span><span class="r" id="r3">03 / 06</span>
+          <span class="l" id="l4">Gold Leaf</span><span class="r" id="r4">04 / 06</span>
+          <span class="l" id="l5">Lilac</span><span class="r" id="r5">05 / 06</span>
+          <span class="l" id="l6">Ball on Blue</span><span class="r" id="r6">06 / 06</span>
+          <span class="r" id="r7">Original painting · Jana Ezzeldin</span>
+        </div>
+      </div>
+
+      <div id="hud2" class="clip" data-start="10.5" data-duration="2.9" data-track-index="1">
+        <div class="word" id="v-1" data-layout-allow-overlap data-layout-allow-occlusion><span>her paintings</span></div>
+        <div class="word" id="v-2" data-layout-allow-overlap data-layout-allow-occlusion><span>her designs</span></div>
+        <div class="word" id="v-3" data-layout-allow-overlap data-layout-allow-occlusion><span>all in one place.</span></div>
+      </div>
+
+      <div id="fx" class="clip" data-start="0" data-duration="18.8" data-track-index="2">
+        <div id="shadow"></div>
+        <div id="ball"><img id="b1" src="assets/parts/ball-01.png" alt="" /><img id="b2" src="assets/parts/ball-02.png" alt="" /></div>
+      </div>
+
+      <!-- sound: a US-English voice, a music bed, and one room of bounces -->
+      <audio id="vo1" src="assets/voice/01.wav" data-start="0.25" data-duration="1.835" data-volume="0.6" data-track-index="10" data-audio-group="voiceover"></audio>
+      <audio id="vo2" src="assets/voice/02.wav" data-start="2.6" data-duration="2.475" data-volume="0.6" data-track-index="13" data-audio-group="voiceover"></audio>
+      <audio id="vo3" src="assets/voice/03.wav" data-start="7.0" data-duration="1.664" data-volume="0.6" data-track-index="10" data-audio-group="voiceover"></audio>
+      <audio id="vo4" src="assets/voice/04.wav" data-start="10.6" data-duration="2.624" data-volume="0.6" data-track-index="13" data-audio-group="voiceover"></audio>
+      <audio id="vo5" src="assets/voice/05.wav" data-start="13.7" data-duration="4.331" data-volume="0.6" data-track-index="10" data-audio-group="voiceover"></audio>
+      <audio id="bgm" src="assets/bgm/feelgood-indie.mp3" data-start="0" data-duration="18.8" data-media-start="11.2" data-volume="0.11" data-track-index="11"
+        data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":0},{"t":0.3,"v":1},{"t":6.2,"v":1},{"t":6.8,"v":0.08},{"t":8.9,"v":0.08},{"t":9.4,"v":1},{"t":17.8,"v":1},{"t":18.8,"v":0}]}]}' data-fx-carve="{&quot;enabled&quot;:true,&quot;sources&quot;:[&quot;voiceover&quot;],&quot;strength&quot;:0.8}" data-fx-chain="{&quot;version&quot;:1,&quot;nodes&quot;:[{&quot;type&quot;:&quot;peaking&quot;,&quot;id&quot;:&quot;n1&quot;,&quot;fromCarve&quot;:true,&quot;params&quot;:{&quot;frequency&quot;:160,&quot;gain&quot;:-7.4,&quot;q&quot;:2.06}},{&quot;type&quot;:&quot;peaking&quot;,&quot;id&quot;:&quot;n2&quot;,&quot;fromCarve&quot;:true,&quot;params&quot;:{&quot;frequency&quot;:250,&quot;gain&quot;:-7.4,&quot;q&quot;:2.06}},{&quot;type&quot;:&quot;peaking&quot;,&quot;id&quot;:&quot;n3&quot;,&quot;fromCarve&quot;:true,&quot;params&quot;:{&quot;frequency&quot;:630,&quot;gain&quot;:-7.4,&quot;q&quot;:2.06}},{&quot;type&quot;:&quot;peaking&quot;,&quot;id&quot;:&quot;n4&quot;,&quot;fromCarve&quot;:true,&quot;params&quot;:{&quot;frequency&quot;:1000,&quot;gain&quot;:-8.63,&quot;q&quot;:2.06}},{&quot;type&quot;:&quot;peaking&quot;,&quot;id&quot;:&quot;n5&quot;,&quot;fromCarve&quot;:true,&quot;params&quot;:{&quot;frequency&quot;:1600,&quot;gain&quot;:-14.8,&quot;q&quot;:2.06}},{&quot;type&quot;:&quot;peaking&quot;,&quot;id&quot;:&quot;n6&quot;,&quot;fromCarve&quot;:true,&quot;params&quot;:{&quot;frequency&quot;:2500,&quot;gain&quot;:-7.4,&quot;q&quot;:2.06}},{&quot;type&quot;:&quot;gain&quot;,&quot;id&quot;:&quot;n7&quot;,&quot;fromCarve&quot;:true,&quot;params&quot;:{&quot;gain&quot;:0}}]}" data-automation="{&quot;version&quot;:1,&quot;lanes&quot;:[{&quot;target&quot;:&quot;fx.n1.gain&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:0.299,&quot;v&quot;:0},{&quot;t&quot;:0.384,&quot;v&quot;:-1.1},{&quot;t&quot;:0.469,&quot;v&quot;:-0.8},{&quot;t&quot;:0.555,&quot;v&quot;:-1.9},{&quot;t&quot;:0.64,&quot;v&quot;:-1.3},{&quot;t&quot;:0.811,&quot;v&quot;:-1.5},{&quot;t&quot;:0.896,&quot;v&quot;:-5.4},{&quot;t&quot;:0.981,&quot;v&quot;:-7},{&quot;t&quot;:1.067,&quot;v&quot;:-6.7},{&quot;t&quot;:1.152,&quot;v&quot;:-5.3},{&quot;t&quot;:1.237,&quot;v&quot;:-7},{&quot;t&quot;:1.323,&quot;v&quot;:-5.6},{&quot;t&quot;:1.408,&quot;v&quot;:-4},{&quot;t&quot;:1.493,&quot;v&quot;:-2.9},{&quot;t&quot;:1.579,&quot;v&quot;:-2},{&quot;t&quot;:1.664,&quot;v&quot;:-1.5},{&quot;t&quot;:1.749,&quot;v&quot;:-5.2},{&quot;t&quot;:1.835,&quot;v&quot;:-4.4},{&quot;t&quot;:1.92,&quot;v&quot;:-4.1},{&quot;t&quot;:2.005,&quot;v&quot;:-2.9},{&quot;t&quot;:2.091,&quot;v&quot;:-2.1},{&quot;t&quot;:2.176,&quot;v&quot;:-1.5},{&quot;t&quot;:2.261,&quot;v&quot;:-1},{&quot;t&quot;:2.347,&quot;v&quot;:-0.7},{&quot;t&quot;:2.432,&quot;v&quot;:-0.5},{&quot;t&quot;:2.603,&quot;v&quot;:-0.3},{&quot;t&quot;:2.688,&quot;v&quot;:-1.3},{&quot;t&quot;:2.773,&quot;v&quot;:-0.9},{&quot;t&quot;:2.859,&quot;v&quot;:-0.7},{&quot;t&quot;:3.2,&quot;v&quot;:-1},{&quot;t&quot;:3.285,&quot;v&quot;:-3.3},{&quot;t&quot;:3.371,&quot;v&quot;:-5.4},{&quot;t&quot;:3.541,&quot;v&quot;:-5},{&quot;t&quot;:3.627,&quot;v&quot;:-3.6},{&quot;t&quot;:3.712,&quot;v&quot;:-2.5},{&quot;t&quot;:3.797,&quot;v&quot;:-2.5},{&quot;t&quot;:3.883,&quot;v&quot;:-4.7},{&quot;t&quot;:3.968,&quot;v&quot;:-5.4},{&quot;t&quot;:4.053,&quot;v&quot;:-6.2},{&quot;t&quot;:4.139,&quot;v&quot;:-6},{&quot;t&quot;:4.224,&quot;v&quot;:-4.3},{&quot;t&quot;:4.309,&quot;v&quot;:-3},{&quot;t&quot;:4.395,&quot;v&quot;:-2.2},{&quot;t&quot;:4.48,&quot;v&quot;:-2.3},{&quot;t&quot;:4.565,&quot;v&quot;:-5.1},{&quot;t&quot;:4.651,&quot;v&quot;:-3.6},{&quot;t&quot;:4.907,&quot;v&quot;:-3.4},{&quot;t&quot;:4.992,&quot;v&quot;:-2.4},{&quot;t&quot;:5.077,&quot;v&quot;:-1.7},{&quot;t&quot;:5.163,&quot;v&quot;:-1.2},{&quot;t&quot;:5.248,&quot;v&quot;:-0.9},{&quot;t&quot;:5.333,&quot;v&quot;:-0.6},{&quot;t&quot;:5.589,&quot;v&quot;:-0.2},{&quot;t&quot;:5.675,&quot;v&quot;:0},{&quot;t&quot;:6.955,&quot;v&quot;:0},{&quot;t&quot;:7.04,&quot;v&quot;:-1.1},{&quot;t&quot;:7.125,&quot;v&quot;:-0.8},{&quot;t&quot;:7.211,&quot;v&quot;:-0.5},{&quot;t&quot;:7.296,&quot;v&quot;:-0.4},{&quot;t&quot;:7.381,&quot;v&quot;:-1.8},{&quot;t&quot;:7.467,&quot;v&quot;:-1.3},{&quot;t&quot;:7.552,&quot;v&quot;:-0.9},{&quot;t&quot;:7.637,&quot;v&quot;:-0.7},{&quot;t&quot;:7.723,&quot;v&quot;:-5.9},{&quot;t&quot;:7.808,&quot;v&quot;:-6.7},{&quot;t&quot;:7.893,&quot;v&quot;:-4.8},{&quot;t&quot;:7.979,&quot;v&quot;:-4.6},{&quot;t&quot;:8.064,&quot;v&quot;:-3.3},{&quot;t&quot;:8.149,&quot;v&quot;:-2.3},{&quot;t&quot;:8.235,&quot;v&quot;:-5.1},{&quot;t&quot;:8.32,&quot;v&quot;:-4.6},{&quot;t&quot;:8.405,&quot;v&quot;:-4.1},{&quot;t&quot;:8.491,&quot;v&quot;:-2.9},{&quot;t&quot;:8.576,&quot;v&quot;:-2.1},{&quot;t&quot;:8.661,&quot;v&quot;:-1.5},{&quot;t&quot;:8.747,&quot;v&quot;:-1},{&quot;t&quot;:8.832,&quot;v&quot;:-0.7},{&quot;t&quot;:8.917,&quot;v&quot;:-0.5},{&quot;t&quot;:9.088,&quot;v&quot;:-0.3},{&quot;t&quot;:9.173,&quot;v&quot;:0},{&quot;t&quot;:10.624,&quot;v&quot;:0},{&quot;t&quot;:10.709,&quot;v&quot;:-0.9},{&quot;t&quot;:10.965,&quot;v&quot;:-0.6},{&quot;t&quot;:11.051,&quot;v&quot;:-0.4},{&quot;t&quot;:11.136,&quot;v&quot;:-5.1},{&quot;t&quot;:11.221,&quot;v&quot;:-5.4},{&quot;t&quot;:11.307,&quot;v&quot;:-3.8},{&quot;t&quot;:11.392,&quot;v&quot;:-2.7},{&quot;t&quot;:11.477,&quot;v&quot;:-1.9},{&quot;t&quot;:11.563,&quot;v&quot;:-3},{&quot;t&quot;:11.648,&quot;v&quot;:-5.5},{&quot;t&quot;:11.733,&quot;v&quot;:-5},{&quot;t&quot;:11.819,&quot;v&quot;:-6.2},{&quot;t&quot;:11.904,&quot;v&quot;:-6.5},{&quot;t&quot;:11.989,&quot;v&quot;:-6.8},{&quot;t&quot;:12.075,&quot;v&quot;:-5.6},{&quot;t&quot;:12.16,&quot;v&quot;:-4},{&quot;t&quot;:12.245,&quot;v&quot;:-2.8},{&quot;t&quot;:12.331,&quot;v&quot;:-2.6},{&quot;t&quot;:12.416,&quot;v&quot;:-1.9},{&quot;t&quot;:12.501,&quot;v&quot;:-1.8},{&quot;t&quot;:12.587,&quot;v&quot;:-5.7},{&quot;t&quot;:12.672,&quot;v&quot;:-4.2},{&quot;t&quot;:12.757,&quot;v&quot;:-3.6},{&quot;t&quot;:12.843,&quot;v&quot;:-4.4},{&quot;t&quot;:12.928,&quot;v&quot;:-3.3},{&quot;t&quot;:13.013,&quot;v&quot;:-2.3},{&quot;t&quot;:13.099,&quot;v&quot;:-1.7},{&quot;t&quot;:13.184,&quot;v&quot;:-1.2},{&quot;t&quot;:13.269,&quot;v&quot;:-0.8},{&quot;t&quot;:13.355,&quot;v&quot;:-0.6},{&quot;t&quot;:13.611,&quot;v&quot;:-0.2},{&quot;t&quot;:13.696,&quot;v&quot;:0},{&quot;t&quot;:14.208,&quot;v&quot;:0},{&quot;t&quot;:14.293,&quot;v&quot;:-0.6},{&quot;t&quot;:14.379,&quot;v&quot;:-5.2},{&quot;t&quot;:14.464,&quot;v&quot;:-6.3},{&quot;t&quot;:14.549,&quot;v&quot;:-4.4},{&quot;t&quot;:14.635,&quot;v&quot;:-6.4},{&quot;t&quot;:14.72,&quot;v&quot;:-6.5},{&quot;t&quot;:14.805,&quot;v&quot;:-5.9},{&quot;t&quot;:14.891,&quot;v&quot;:-4.6},{&quot;t&quot;:14.976,&quot;v&quot;:-4.2},{&quot;t&quot;:15.061,&quot;v&quot;:-3},{&quot;t&quot;:15.147,&quot;v&quot;:-2.1},{&quot;t&quot;:15.232,&quot;v&quot;:-1.5},{&quot;t&quot;:15.317,&quot;v&quot;:-1.1},{&quot;t&quot;:15.403,&quot;v&quot;:-4.6},{&quot;t&quot;:15.488,&quot;v&quot;:-4.3},{&quot;t&quot;:15.573,&quot;v&quot;:-3.1},{&quot;t&quot;:15.659,&quot;v&quot;:-2.6},{&quot;t&quot;:15.744,&quot;v&quot;:-3.8},{&quot;t&quot;:15.829,&quot;v&quot;:-2.7},{&quot;t&quot;:15.915,&quot;v&quot;:-1.9},{&quot;t&quot;:16,&quot;v&quot;:-5.8},{&quot;t&quot;:16.085,&quot;v&quot;:-5.4},{&quot;t&quot;:16.171,&quot;v&quot;:-4.3},{&quot;t&quot;:16.256,&quot;v&quot;:-3},{&quot;t&quot;:16.341,&quot;v&quot;:-2.2},{&quot;t&quot;:16.427,&quot;v&quot;:-1.5},{&quot;t&quot;:16.512,&quot;v&quot;:-1.1},{&quot;t&quot;:16.597,&quot;v&quot;:-1},{&quot;t&quot;:16.683,&quot;v&quot;:-0.7},{&quot;t&quot;:16.768,&quot;v&quot;:-0.5},{&quot;t&quot;:16.853,&quot;v&quot;:-0.4},{&quot;t&quot;:16.939,&quot;v&quot;:-2.6},{&quot;t&quot;:17.024,&quot;v&quot;:-6.1},{&quot;t&quot;:17.109,&quot;v&quot;:-6.2},{&quot;t&quot;:17.195,&quot;v&quot;:-4.4},{&quot;t&quot;:17.28,&quot;v&quot;:-5.7},{&quot;t&quot;:17.365,&quot;v&quot;:-6.6},{&quot;t&quot;:17.536,&quot;v&quot;:-6.4},{&quot;t&quot;:17.621,&quot;v&quot;:-5.6},{&quot;t&quot;:17.707,&quot;v&quot;:-4},{&quot;t&quot;:17.792,&quot;v&quot;:-3.6},{&quot;t&quot;:17.877,&quot;v&quot;:-2.6},{&quot;t&quot;:17.963,&quot;v&quot;:-1.8},{&quot;t&quot;:18.048,&quot;v&quot;:-1.3},{&quot;t&quot;:18.048,&quot;v&quot;:0}]},{&quot;target&quot;:&quot;fx.n2.gain&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:0.299,&quot;v&quot;:0},{&quot;t&quot;:0.384,&quot;v&quot;:-5.5},{&quot;t&quot;:0.469,&quot;v&quot;:-7},{&quot;t&quot;:0.555,&quot;v&quot;:-5},{&quot;t&quot;:0.64,&quot;v&quot;:-6.6},{&quot;t&quot;:0.725,&quot;v&quot;:-7.3},{&quot;t&quot;:0.811,&quot;v&quot;:-6.6},{&quot;t&quot;:0.896,&quot;v&quot;:-5},{&quot;t&quot;:0.981,&quot;v&quot;:-3.5},{&quot;t&quot;:1.067,&quot;v&quot;:-2.5},{&quot;t&quot;:1.152,&quot;v&quot;:-2.2},{&quot;t&quot;:1.237,&quot;v&quot;:-1.6},{&quot;t&quot;:1.323,&quot;v&quot;:-1.5},{&quot;t&quot;:1.408,&quot;v&quot;:-1},{&quot;t&quot;:1.493,&quot;v&quot;:-3.1},{&quot;t&quot;:1.579,&quot;v&quot;:-2.2},{&quot;t&quot;:1.664,&quot;v&quot;:-1.6},{&quot;t&quot;:1.92,&quot;v&quot;:-1.6},{&quot;t&quot;:2.005,&quot;v&quot;:-1.1},{&quot;t&quot;:2.091,&quot;v&quot;:-0.8},{&quot;t&quot;:2.176,&quot;v&quot;:-0.6},{&quot;t&quot;:2.432,&quot;v&quot;:-0.2},{&quot;t&quot;:2.517,&quot;v&quot;:0},{&quot;t&quot;:2.603,&quot;v&quot;:0},{&quot;t&quot;:2.688,&quot;v&quot;:-3.6},{&quot;t&quot;:2.773,&quot;v&quot;:-6},{&quot;t&quot;:2.859,&quot;v&quot;:-5.1},{&quot;t&quot;:2.944,&quot;v&quot;:-4.6},{&quot;t&quot;:3.029,&quot;v&quot;:-3.3},{&quot;t&quot;:3.115,&quot;v&quot;:-4.5},{&quot;t&quot;:3.2,&quot;v&quot;:-3.2},{&quot;t&quot;:3.285,&quot;v&quot;:-2.3},{&quot;t&quot;:3.371,&quot;v&quot;:-2},{&quot;t&quot;:3.456,&quot;v&quot;:-3.6},{&quot;t&quot;:3.541,&quot;v&quot;:-2.7},{&quot;t&quot;:3.627,&quot;v&quot;:-1.9},{&quot;t&quot;:3.712,&quot;v&quot;:-1.4},{&quot;t&quot;:3.797,&quot;v&quot;:-1.1},{&quot;t&quot;:3.883,&quot;v&quot;:-0.8},{&quot;t&quot;:3.968,&quot;v&quot;:-3.4},{&quot;t&quot;:4.053,&quot;v&quot;:-2.4},{&quot;t&quot;:4.139,&quot;v&quot;:-1.7},{&quot;t&quot;:4.224,&quot;v&quot;:-5.3},{&quot;t&quot;:4.309,&quot;v&quot;:-4.5},{&quot;t&quot;:4.395,&quot;v&quot;:-3.2},{&quot;t&quot;:4.48,&quot;v&quot;:-2.4},{&quot;t&quot;:4.565,&quot;v&quot;:-1.7},{&quot;t&quot;:4.651,&quot;v&quot;:-4.7},{&quot;t&quot;:4.736,&quot;v&quot;:-5.9},{&quot;t&quot;:4.821,&quot;v&quot;:-5.1},{&quot;t&quot;:4.907,&quot;v&quot;:-4.4},{&quot;t&quot;:4.992,&quot;v&quot;:-3.1},{&quot;t&quot;:5.077,&quot;v&quot;:-2.2},{&quot;t&quot;:5.163,&quot;v&quot;:-1.6},{&quot;t&quot;:5.248,&quot;v&quot;:-1.1},{&quot;t&quot;:5.333,&quot;v&quot;:-0.8},{&quot;t&quot;:5.419,&quot;v&quot;:-0.6},{&quot;t&quot;:5.675,&quot;v&quot;:-0.2},{&quot;t&quot;:5.76,&quot;v&quot;:0},{&quot;t&quot;:7.04,&quot;v&quot;:0},{&quot;t&quot;:7.125,&quot;v&quot;:-6},{&quot;t&quot;:7.296,&quot;v&quot;:-6.1},{&quot;t&quot;:7.381,&quot;v&quot;:-5.4},{&quot;t&quot;:7.467,&quot;v&quot;:-6},{&quot;t&quot;:7.552,&quot;v&quot;:-4.3},{&quot;t&quot;:7.637,&quot;v&quot;:-3},{&quot;t&quot;:7.723,&quot;v&quot;:-2.2},{&quot;t&quot;:7.808,&quot;v&quot;:-1.5},{&quot;t&quot;:7.979,&quot;v&quot;:-1.2},{&quot;t&quot;:8.064,&quot;v&quot;:-0.8},{&quot;t&quot;:8.149,&quot;v&quot;:-0.6},{&quot;t&quot;:8.235,&quot;v&quot;:-2.2},{&quot;t&quot;:8.32,&quot;v&quot;:-2.1},{&quot;t&quot;:8.405,&quot;v&quot;:-1.5},{&quot;t&quot;:8.491,&quot;v&quot;:-1.1},{&quot;t&quot;:8.576,&quot;v&quot;:-0.7},{&quot;t&quot;:8.832,&quot;v&quot;:-0.3},{&quot;t&quot;:8.917,&quot;v&quot;:0},{&quot;t&quot;:10.624,&quot;v&quot;:0},{&quot;t&quot;:10.709,&quot;v&quot;:-4.9},{&quot;t&quot;:10.795,&quot;v&quot;:-3.5},{&quot;t&quot;:10.88,&quot;v&quot;:-6.6},{&quot;t&quot;:10.965,&quot;v&quot;:-4.7},{&quot;t&quot;:11.051,&quot;v&quot;:-3.3},{&quot;t&quot;:11.136,&quot;v&quot;:-2.6},{&quot;t&quot;:11.221,&quot;v&quot;:-3.3},{&quot;t&quot;:11.307,&quot;v&quot;:-2.6},{&quot;t&quot;:11.392,&quot;v&quot;:-1.8},{&quot;t&quot;:11.477,&quot;v&quot;:-1.3},{&quot;t&quot;:11.563,&quot;v&quot;:-2},{&quot;t&quot;:11.648,&quot;v&quot;:-1.5},{&quot;t&quot;:11.733,&quot;v&quot;:-1.1},{&quot;t&quot;:11.819,&quot;v&quot;:-0.8},{&quot;t&quot;:11.989,&quot;v&quot;:-0.4},{&quot;t&quot;:12.075,&quot;v&quot;:-0.3},{&quot;t&quot;:12.331,&quot;v&quot;:0},{&quot;t&quot;:12.416,&quot;v&quot;:-5.6},{&quot;t&quot;:12.501,&quot;v&quot;:-5.4},{&quot;t&quot;:12.587,&quot;v&quot;:-3.9},{&quot;t&quot;:12.672,&quot;v&quot;:-3.7},{&quot;t&quot;:12.757,&quot;v&quot;:-2.6},{&quot;t&quot;:12.843,&quot;v&quot;:-2.3},{&quot;t&quot;:12.928,&quot;v&quot;:-1.7},{&quot;t&quot;:13.013,&quot;v&quot;:-1.2},{&quot;t&quot;:13.099,&quot;v&quot;:-0.9},{&quot;t&quot;:13.184,&quot;v&quot;:-0.6},{&quot;t&quot;:13.44,&quot;v&quot;:-0.2},{&quot;t&quot;:13.525,&quot;v&quot;:0},{&quot;t&quot;:13.781,&quot;v&quot;:0},{&quot;t&quot;:13.867,&quot;v&quot;:-6.1},{&quot;t&quot;:13.952,&quot;v&quot;:-5.9},{&quot;t&quot;:14.037,&quot;v&quot;:-5.3},{&quot;t&quot;:14.123,&quot;v&quot;:-6.8},{&quot;t&quot;:14.208,&quot;v&quot;:-7},{&quot;t&quot;:14.293,&quot;v&quot;:-5},{&quot;t&quot;:14.379,&quot;v&quot;:-3.6},{&quot;t&quot;:14.464,&quot;v&quot;:-2.9},{&quot;t&quot;:14.549,&quot;v&quot;:-2.1},{&quot;t&quot;:14.635,&quot;v&quot;:-1.5},{&quot;t&quot;:14.72,&quot;v&quot;:-1},{&quot;t&quot;:14.805,&quot;v&quot;:-1.7},{&quot;t&quot;:14.891,&quot;v&quot;:-1.2},{&quot;t&quot;:14.976,&quot;v&quot;:-0.9},{&quot;t&quot;:15.061,&quot;v&quot;:-0.6},{&quot;t&quot;:15.317,&quot;v&quot;:-0.2},{&quot;t&quot;:15.403,&quot;v&quot;:0},{&quot;t&quot;:15.573,&quot;v&quot;:0},{&quot;t&quot;:15.659,&quot;v&quot;:-5.2},{&quot;t&quot;:15.744,&quot;v&quot;:-4.5},{&quot;t&quot;:15.829,&quot;v&quot;:-3.2},{&quot;t&quot;:15.915,&quot;v&quot;:-5.9},{&quot;t&quot;:16,&quot;v&quot;:-4.2},{&quot;t&quot;:16.085,&quot;v&quot;:-4.1},{&quot;t&quot;:16.171,&quot;v&quot;:-2.9},{&quot;t&quot;:16.256,&quot;v&quot;:-2.1},{&quot;t&quot;:16.341,&quot;v&quot;:-1.5},{&quot;t&quot;:16.427,&quot;v&quot;:-1},{&quot;t&quot;:16.512,&quot;v&quot;:-0.7},{&quot;t&quot;:16.597,&quot;v&quot;:-2.8},{&quot;t&quot;:16.683,&quot;v&quot;:-3.1},{&quot;t&quot;:16.768,&quot;v&quot;:-5.9},{&quot;t&quot;:16.853,&quot;v&quot;:-6.3},{&quot;t&quot;:16.939,&quot;v&quot;:-4.5},{&quot;t&quot;:17.024,&quot;v&quot;:-3.2},{&quot;t&quot;:17.109,&quot;v&quot;:-2.3},{&quot;t&quot;:17.195,&quot;v&quot;:-1.6},{&quot;t&quot;:17.28,&quot;v&quot;:-1.2},{&quot;t&quot;:17.365,&quot;v&quot;:-0.8},{&quot;t&quot;:17.451,&quot;v&quot;:-2.3},{&quot;t&quot;:17.536,&quot;v&quot;:-2.4},{&quot;t&quot;:17.621,&quot;v&quot;:-2.9},{&quot;t&quot;:17.707,&quot;v&quot;:-2},{&quot;t&quot;:17.792,&quot;v&quot;:-1.8},{&quot;t&quot;:17.877,&quot;v&quot;:-1.3},{&quot;t&quot;:17.963,&quot;v&quot;:-0.9},{&quot;t&quot;:18.048,&quot;v&quot;:-0.6},{&quot;t&quot;:18.048,&quot;v&quot;:0}]},{&quot;target&quot;:&quot;fx.n3.gain&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:0.299,&quot;v&quot;:0},{&quot;t&quot;:0.384,&quot;v&quot;:-4.3},{&quot;t&quot;:0.469,&quot;v&quot;:-3.5},{&quot;t&quot;:0.555,&quot;v&quot;:-3.1},{&quot;t&quot;:0.64,&quot;v&quot;:-2.2},{&quot;t&quot;:0.725,&quot;v&quot;:-1.6},{&quot;t&quot;:0.811,&quot;v&quot;:-1.2},{&quot;t&quot;:0.896,&quot;v&quot;:-4.1},{&quot;t&quot;:0.981,&quot;v&quot;:-3.6},{&quot;t&quot;:1.067,&quot;v&quot;:-2.6},{&quot;t&quot;:1.152,&quot;v&quot;:-2.4},{&quot;t&quot;:1.237,&quot;v&quot;:-4.7},{&quot;t&quot;:1.323,&quot;v&quot;:-3.3},{&quot;t&quot;:1.408,&quot;v&quot;:-2.4},{&quot;t&quot;:1.493,&quot;v&quot;:-4},{&quot;t&quot;:1.579,&quot;v&quot;:-2.8},{&quot;t&quot;:1.664,&quot;v&quot;:-2},{&quot;t&quot;:1.749,&quot;v&quot;:-5.3},{&quot;t&quot;:1.835,&quot;v&quot;:-4.6},{&quot;t&quot;:1.92,&quot;v&quot;:-4.1},{&quot;t&quot;:2.005,&quot;v&quot;:-2.9},{&quot;t&quot;:2.091,&quot;v&quot;:-2.1},{&quot;t&quot;:2.176,&quot;v&quot;:-1.5},{&quot;t&quot;:2.261,&quot;v&quot;:-1},{&quot;t&quot;:2.347,&quot;v&quot;:-0.7},{&quot;t&quot;:2.432,&quot;v&quot;:-0.5},{&quot;t&quot;:2.603,&quot;v&quot;:-0.3},{&quot;t&quot;:2.688,&quot;v&quot;:-1.1},{&quot;t&quot;:2.773,&quot;v&quot;:-4.5},{&quot;t&quot;:2.859,&quot;v&quot;:-5},{&quot;t&quot;:2.944,&quot;v&quot;:-4},{&quot;t&quot;:3.029,&quot;v&quot;:-3},{&quot;t&quot;:3.2,&quot;v&quot;:-3.1},{&quot;t&quot;:3.285,&quot;v&quot;:-2.2},{&quot;t&quot;:3.371,&quot;v&quot;:-3.3},{&quot;t&quot;:3.456,&quot;v&quot;:-2.6},{&quot;t&quot;:3.541,&quot;v&quot;:-1.9},{&quot;t&quot;:3.627,&quot;v&quot;:-1.3},{&quot;t&quot;:3.712,&quot;v&quot;:-0.9},{&quot;t&quot;:3.797,&quot;v&quot;:-1.8},{&quot;t&quot;:3.883,&quot;v&quot;:-3.4},{&quot;t&quot;:3.968,&quot;v&quot;:-5.5},{&quot;t&quot;:4.139,&quot;v&quot;:-5.4},{&quot;t&quot;:4.224,&quot;v&quot;:-4.5},{&quot;t&quot;:4.309,&quot;v&quot;:-3.2},{&quot;t&quot;:4.395,&quot;v&quot;:-2.3},{&quot;t&quot;:4.48,&quot;v&quot;:-1.8},{&quot;t&quot;:4.565,&quot;v&quot;:-1.7},{&quot;t&quot;:4.651,&quot;v&quot;:-1.5},{&quot;t&quot;:4.736,&quot;v&quot;:-5.6},{&quot;t&quot;:4.821,&quot;v&quot;:-5.5},{&quot;t&quot;:4.907,&quot;v&quot;:-3.9},{&quot;t&quot;:4.992,&quot;v&quot;:-2.8},{&quot;t&quot;:5.077,&quot;v&quot;:-2},{&quot;t&quot;:5.163,&quot;v&quot;:-1.4},{&quot;t&quot;:5.248,&quot;v&quot;:-1},{&quot;t&quot;:5.333,&quot;v&quot;:-0.7},{&quot;t&quot;:5.589,&quot;v&quot;:-0.3},{&quot;t&quot;:5.675,&quot;v&quot;:0},{&quot;t&quot;:6.955,&quot;v&quot;:0},{&quot;t&quot;:7.04,&quot;v&quot;:-0.6},{&quot;t&quot;:7.125,&quot;v&quot;:-5.5},{&quot;t&quot;:7.211,&quot;v&quot;:-5.1},{&quot;t&quot;:7.296,&quot;v&quot;:-4.2},{&quot;t&quot;:7.381,&quot;v&quot;:-4.1},{&quot;t&quot;:7.467,&quot;v&quot;:-5.3},{&quot;t&quot;:7.552,&quot;v&quot;:-3.8},{&quot;t&quot;:7.637,&quot;v&quot;:-2.7},{&quot;t&quot;:7.723,&quot;v&quot;:-4.9},{&quot;t&quot;:7.808,&quot;v&quot;:-4.9},{&quot;t&quot;:7.893,&quot;v&quot;:-3.5},{&quot;t&quot;:7.979,&quot;v&quot;:-3.6},{&quot;t&quot;:8.064,&quot;v&quot;:-2.6},{&quot;t&quot;:8.149,&quot;v&quot;:-1.8},{&quot;t&quot;:8.235,&quot;v&quot;:-5.5},{&quot;t&quot;:8.32,&quot;v&quot;:-4.7},{&quot;t&quot;:8.405,&quot;v&quot;:-3.3},{&quot;t&quot;:8.491,&quot;v&quot;:-2.4},{&quot;t&quot;:8.576,&quot;v&quot;:-1.7},{&quot;t&quot;:8.661,&quot;v&quot;:-1.2},{&quot;t&quot;:8.747,&quot;v&quot;:-0.9},{&quot;t&quot;:8.832,&quot;v&quot;:-0.6},{&quot;t&quot;:9.088,&quot;v&quot;:-0.2},{&quot;t&quot;:9.173,&quot;v&quot;:0},{&quot;t&quot;:10.624,&quot;v&quot;:0},{&quot;t&quot;:10.709,&quot;v&quot;:-4.8},{&quot;t&quot;:10.795,&quot;v&quot;:-3.9},{&quot;t&quot;:10.965,&quot;v&quot;:-4.2},{&quot;t&quot;:11.051,&quot;v&quot;:-3},{&quot;t&quot;:11.136,&quot;v&quot;:-3.9},{&quot;t&quot;:11.221,&quot;v&quot;:-3.1},{&quot;t&quot;:11.307,&quot;v&quot;:-2.2},{&quot;t&quot;:11.392,&quot;v&quot;:-1.6},{&quot;t&quot;:11.477,&quot;v&quot;:-1.1},{&quot;t&quot;:11.563,&quot;v&quot;:-4.4},{&quot;t&quot;:11.648,&quot;v&quot;:-3.9},{&quot;t&quot;:11.733,&quot;v&quot;:-2.9},{&quot;t&quot;:11.819,&quot;v&quot;:-4.4},{&quot;t&quot;:11.904,&quot;v&quot;:-4.2},{&quot;t&quot;:11.989,&quot;v&quot;:-3.9},{&quot;t&quot;:12.075,&quot;v&quot;:-2.8},{&quot;t&quot;:12.16,&quot;v&quot;:-2.7},{&quot;t&quot;:12.245,&quot;v&quot;:-1.9},{&quot;t&quot;:12.331,&quot;v&quot;:-5.1},{&quot;t&quot;:12.416,&quot;v&quot;:-4.9},{&quot;t&quot;:12.501,&quot;v&quot;:-4},{&quot;t&quot;:12.672,&quot;v&quot;:-3.6},{&quot;t&quot;:12.757,&quot;v&quot;:-2.6},{&quot;t&quot;:12.843,&quot;v&quot;:-4.5},{&quot;t&quot;:12.928,&quot;v&quot;:-3.9},{&quot;t&quot;:13.013,&quot;v&quot;:-2.8},{&quot;t&quot;:13.099,&quot;v&quot;:-2},{&quot;t&quot;:13.184,&quot;v&quot;:-1.4},{&quot;t&quot;:13.269,&quot;v&quot;:-1},{&quot;t&quot;:13.355,&quot;v&quot;:-0.7},{&quot;t&quot;:13.611,&quot;v&quot;:-0.3},{&quot;t&quot;:13.696,&quot;v&quot;:0},{&quot;t&quot;:13.781,&quot;v&quot;:0},{&quot;t&quot;:13.867,&quot;v&quot;:-1.8},{&quot;t&quot;:14.037,&quot;v&quot;:-1.8},{&quot;t&quot;:14.123,&quot;v&quot;:-1.3},{&quot;t&quot;:14.208,&quot;v&quot;:-1},{&quot;t&quot;:14.293,&quot;v&quot;:-0.7},{&quot;t&quot;:14.379,&quot;v&quot;:-4.2},{&quot;t&quot;:14.464,&quot;v&quot;:-3.1},{&quot;t&quot;:14.549,&quot;v&quot;:-2.2},{&quot;t&quot;:14.635,&quot;v&quot;:-4.7},{&quot;t&quot;:14.72,&quot;v&quot;:-4.1},{&quot;t&quot;:14.805,&quot;v&quot;:-3.1},{&quot;t&quot;:14.891,&quot;v&quot;:-2.4},{&quot;t&quot;:14.976,&quot;v&quot;:-1.7},{&quot;t&quot;:15.061,&quot;v&quot;:-1.2},{&quot;t&quot;:15.147,&quot;v&quot;:-0.9},{&quot;t&quot;:15.232,&quot;v&quot;:-0.6},{&quot;t&quot;:15.317,&quot;v&quot;:-0.4},{&quot;t&quot;:15.403,&quot;v&quot;:-4.1},{&quot;t&quot;:15.488,&quot;v&quot;:-5.1},{&quot;t&quot;:15.573,&quot;v&quot;:-3.6},{&quot;t&quot;:15.659,&quot;v&quot;:-3.6},{&quot;t&quot;:15.744,&quot;v&quot;:-2.6},{&quot;t&quot;:15.829,&quot;v&quot;:-1.8},{&quot;t&quot;:15.915,&quot;v&quot;:-3.1},{&quot;t&quot;:16,&quot;v&quot;:-2.9},{&quot;t&quot;:16.085,&quot;v&quot;:-2.3},{&quot;t&quot;:16.171,&quot;v&quot;:-1.6},{&quot;t&quot;:16.256,&quot;v&quot;:-1.1},{&quot;t&quot;:16.341,&quot;v&quot;:-0.8},{&quot;t&quot;:16.427,&quot;v&quot;:-0.6},{&quot;t&quot;:16.512,&quot;v&quot;:-0.4},{&quot;t&quot;:16.597,&quot;v&quot;:-6},{&quot;t&quot;:16.683,&quot;v&quot;:-7.1},{&quot;t&quot;:16.768,&quot;v&quot;:-5.4},{&quot;t&quot;:16.853,&quot;v&quot;:-4.7},{&quot;t&quot;:16.939,&quot;v&quot;:-4.6},{&quot;t&quot;:17.024,&quot;v&quot;:-5.2},{&quot;t&quot;:17.109,&quot;v&quot;:-4.3},{&quot;t&quot;:17.195,&quot;v&quot;:-3.1},{&quot;t&quot;:17.28,&quot;v&quot;:-2.9},{&quot;t&quot;:17.365,&quot;v&quot;:-2.1},{&quot;t&quot;:17.451,&quot;v&quot;:-4.3},{&quot;t&quot;:17.621,&quot;v&quot;:-4.4},{&quot;t&quot;:17.707,&quot;v&quot;:-3.1},{&quot;t&quot;:17.792,&quot;v&quot;:-4.8},{&quot;t&quot;:17.877,&quot;v&quot;:-3.5},{&quot;t&quot;:17.963,&quot;v&quot;:-2.5},{&quot;t&quot;:18.048,&quot;v&quot;:-1.8},{&quot;t&quot;:18.048,&quot;v&quot;:0}]},{&quot;target&quot;:&quot;fx.n4.gain&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:0.299,&quot;v&quot;:0},{&quot;t&quot;:0.384,&quot;v&quot;:-6.2},{&quot;t&quot;:0.469,&quot;v&quot;:-4.7},{&quot;t&quot;:0.555,&quot;v&quot;:-4.2},{&quot;t&quot;:0.64,&quot;v&quot;:-3.7},{&quot;t&quot;:0.725,&quot;v&quot;:-3.5},{&quot;t&quot;:0.811,&quot;v&quot;:-2.5},{&quot;t&quot;:0.896,&quot;v&quot;:-2.3},{&quot;t&quot;:0.981,&quot;v&quot;:-1.9},{&quot;t&quot;:1.067,&quot;v&quot;:-1.3},{&quot;t&quot;:1.152,&quot;v&quot;:-0.9},{&quot;t&quot;:1.237,&quot;v&quot;:-4.6},{&quot;t&quot;:1.323,&quot;v&quot;:-3.3},{&quot;t&quot;:1.408,&quot;v&quot;:-2.3},{&quot;t&quot;:1.493,&quot;v&quot;:-2.3},{&quot;t&quot;:1.579,&quot;v&quot;:-1.6},{&quot;t&quot;:1.664,&quot;v&quot;:-1.1},{&quot;t&quot;:1.749,&quot;v&quot;:-2.7},{&quot;t&quot;:1.835,&quot;v&quot;:-3.7},{&quot;t&quot;:1.92,&quot;v&quot;:-3.5},{&quot;t&quot;:2.005,&quot;v&quot;:-2.5},{&quot;t&quot;:2.091,&quot;v&quot;:-1.8},{&quot;t&quot;:2.176,&quot;v&quot;:-1.3},{&quot;t&quot;:2.261,&quot;v&quot;:-0.9},{&quot;t&quot;:2.347,&quot;v&quot;:-0.6},{&quot;t&quot;:2.603,&quot;v&quot;:-0.2},{&quot;t&quot;:2.688,&quot;v&quot;:0},{&quot;t&quot;:2.773,&quot;v&quot;:-5.2},{&quot;t&quot;:2.859,&quot;v&quot;:-5},{&quot;t&quot;:2.944,&quot;v&quot;:-3.5},{&quot;t&quot;:3.029,&quot;v&quot;:-2.5},{&quot;t&quot;:3.115,&quot;v&quot;:-2.1},{&quot;t&quot;:3.2,&quot;v&quot;:-1.9},{&quot;t&quot;:3.285,&quot;v&quot;:-1.4},{&quot;t&quot;:3.371,&quot;v&quot;:-1.1},{&quot;t&quot;:3.456,&quot;v&quot;:-0.8},{&quot;t&quot;:3.627,&quot;v&quot;:-0.4},{&quot;t&quot;:3.712,&quot;v&quot;:-0.3},{&quot;t&quot;:3.797,&quot;v&quot;:-3.3},{&quot;t&quot;:3.883,&quot;v&quot;:-2.5},{&quot;t&quot;:3.968,&quot;v&quot;:-2.5},{&quot;t&quot;:4.053,&quot;v&quot;:-4.5},{&quot;t&quot;:4.139,&quot;v&quot;:-3.9},{&quot;t&quot;:4.224,&quot;v&quot;:-3.2},{&quot;t&quot;:4.309,&quot;v&quot;:-2.2},{&quot;t&quot;:4.395,&quot;v&quot;:-1.6},{&quot;t&quot;:4.48,&quot;v&quot;:-2.6},{&quot;t&quot;:4.565,&quot;v&quot;:-3},{&quot;t&quot;:4.651,&quot;v&quot;:-4.5},{&quot;t&quot;:4.736,&quot;v&quot;:-6.6},{&quot;t&quot;:4.821,&quot;v&quot;:-5.1},{&quot;t&quot;:4.907,&quot;v&quot;:-3.8},{&quot;t&quot;:4.992,&quot;v&quot;:-2.7},{&quot;t&quot;:5.077,&quot;v&quot;:-1.9},{&quot;t&quot;:5.163,&quot;v&quot;:-1.4},{&quot;t&quot;:5.248,&quot;v&quot;:-1},{&quot;t&quot;:5.333,&quot;v&quot;:-0.7},{&quot;t&quot;:5.589,&quot;v&quot;:-0.2},{&quot;t&quot;:5.675,&quot;v&quot;:0},{&quot;t&quot;:6.955,&quot;v&quot;:0},{&quot;t&quot;:7.04,&quot;v&quot;:-1.4},{&quot;t&quot;:7.125,&quot;v&quot;:-5.4},{&quot;t&quot;:7.211,&quot;v&quot;:-4.1},{&quot;t&quot;:7.296,&quot;v&quot;:-3.2},{&quot;t&quot;:7.381,&quot;v&quot;:-3},{&quot;t&quot;:7.467,&quot;v&quot;:-6.8},{&quot;t&quot;:7.552,&quot;v&quot;:-4.8},{&quot;t&quot;:7.637,&quot;v&quot;:-3.4},{&quot;t&quot;:7.808,&quot;v&quot;:-3.4},{&quot;t&quot;:7.893,&quot;v&quot;:-2.4},{&quot;t&quot;:7.979,&quot;v&quot;:-5.6},{&quot;t&quot;:8.064,&quot;v&quot;:-4},{&quot;t&quot;:8.235,&quot;v&quot;:-4},{&quot;t&quot;:8.32,&quot;v&quot;:-3},{&quot;t&quot;:8.405,&quot;v&quot;:-2.1},{&quot;t&quot;:8.491,&quot;v&quot;:-1.5},{&quot;t&quot;:8.576,&quot;v&quot;:-1.1},{&quot;t&quot;:8.661,&quot;v&quot;:-0.8},{&quot;t&quot;:8.832,&quot;v&quot;:-0.4},{&quot;t&quot;:8.917,&quot;v&quot;:-0.3},{&quot;t&quot;:10.624,&quot;v&quot;:0},{&quot;t&quot;:10.709,&quot;v&quot;:-3.9},{&quot;t&quot;:10.795,&quot;v&quot;:-3.2},{&quot;t&quot;:10.88,&quot;v&quot;:-2.9},{&quot;t&quot;:10.965,&quot;v&quot;:-4},{&quot;t&quot;:11.051,&quot;v&quot;:-2.9},{&quot;t&quot;:11.136,&quot;v&quot;:-2.5},{&quot;t&quot;:11.221,&quot;v&quot;:-1.8},{&quot;t&quot;:11.307,&quot;v&quot;:-1.3},{&quot;t&quot;:11.392,&quot;v&quot;:-0.9},{&quot;t&quot;:11.477,&quot;v&quot;:-0.6},{&quot;t&quot;:11.563,&quot;v&quot;:-2.1},{&quot;t&quot;:11.648,&quot;v&quot;:-1.8},{&quot;t&quot;:11.733,&quot;v&quot;:-1.3},{&quot;t&quot;:11.819,&quot;v&quot;:-4.8},{&quot;t&quot;:11.904,&quot;v&quot;:-4.4},{&quot;t&quot;:11.989,&quot;v&quot;:-3.3},{&quot;t&quot;:12.075,&quot;v&quot;:-2.4},{&quot;t&quot;:12.16,&quot;v&quot;:-1.7},{&quot;t&quot;:12.245,&quot;v&quot;:-1.3},{&quot;t&quot;:12.331,&quot;v&quot;:-6.8},{&quot;t&quot;:12.416,&quot;v&quot;:-6.4},{&quot;t&quot;:12.501,&quot;v&quot;:-5.3},{&quot;t&quot;:12.587,&quot;v&quot;:-6.7},{&quot;t&quot;:12.672,&quot;v&quot;:-5},{&quot;t&quot;:12.757,&quot;v&quot;:-3.5},{&quot;t&quot;:12.843,&quot;v&quot;:-3.4},{&quot;t&quot;:12.928,&quot;v&quot;:-2.4},{&quot;t&quot;:13.013,&quot;v&quot;:-1.7},{&quot;t&quot;:13.099,&quot;v&quot;:-1.2},{&quot;t&quot;:13.184,&quot;v&quot;:-0.9},{&quot;t&quot;:13.269,&quot;v&quot;:-0.6},{&quot;t&quot;:13.525,&quot;v&quot;:-0.2},{&quot;t&quot;:13.611,&quot;v&quot;:0},{&quot;t&quot;:13.696,&quot;v&quot;:0},{&quot;t&quot;:13.781,&quot;v&quot;:-0.5},{&quot;t&quot;:13.867,&quot;v&quot;:-2.3},{&quot;t&quot;:13.952,&quot;v&quot;:-1.7},{&quot;t&quot;:14.037,&quot;v&quot;:-1.2},{&quot;t&quot;:14.123,&quot;v&quot;:-1.7},{&quot;t&quot;:14.208,&quot;v&quot;:-1.4},{&quot;t&quot;:14.293,&quot;v&quot;:-1},{&quot;t&quot;:14.379,&quot;v&quot;:-5.7},{&quot;t&quot;:14.464,&quot;v&quot;:-4},{&quot;t&quot;:14.549,&quot;v&quot;:-2.9},{&quot;t&quot;:14.635,&quot;v&quot;:-4.7},{&quot;t&quot;:14.72,&quot;v&quot;:-3.9},{&quot;t&quot;:14.805,&quot;v&quot;:-2.9},{&quot;t&quot;:14.891,&quot;v&quot;:-2.8},{&quot;t&quot;:14.976,&quot;v&quot;:-2},{&quot;t&quot;:15.061,&quot;v&quot;:-1.4},{&quot;t&quot;:15.147,&quot;v&quot;:-1},{&quot;t&quot;:15.232,&quot;v&quot;:-0.7},{&quot;t&quot;:15.317,&quot;v&quot;:-0.5},{&quot;t&quot;:15.403,&quot;v&quot;:-5},{&quot;t&quot;:15.488,&quot;v&quot;:-5.6},{&quot;t&quot;:15.573,&quot;v&quot;:-4},{&quot;t&quot;:15.659,&quot;v&quot;:-3.2},{&quot;t&quot;:15.744,&quot;v&quot;:-2.3},{&quot;t&quot;:15.829,&quot;v&quot;:-1.6},{&quot;t&quot;:15.915,&quot;v&quot;:-1.4},{&quot;t&quot;:16,&quot;v&quot;:-1},{&quot;t&quot;:16.085,&quot;v&quot;:-0.7},{&quot;t&quot;:16.171,&quot;v&quot;:-0.5},{&quot;t&quot;:16.341,&quot;v&quot;:-0.3},{&quot;t&quot;:16.427,&quot;v&quot;:0},{&quot;t&quot;:16.512,&quot;v&quot;:0},{&quot;t&quot;:16.597,&quot;v&quot;:-7.1},{&quot;t&quot;:16.683,&quot;v&quot;:-7.1},{&quot;t&quot;:16.768,&quot;v&quot;:-6.5},{&quot;t&quot;:16.853,&quot;v&quot;:-6.4},{&quot;t&quot;:16.939,&quot;v&quot;:-5.6},{&quot;t&quot;:17.024,&quot;v&quot;:-6.8},{&quot;t&quot;:17.109,&quot;v&quot;:-5.6},{&quot;t&quot;:17.195,&quot;v&quot;:-4},{&quot;t&quot;:17.28,&quot;v&quot;:-3.1},{&quot;t&quot;:17.365,&quot;v&quot;:-2.2},{&quot;t&quot;:17.451,&quot;v&quot;:-2.2},{&quot;t&quot;:17.536,&quot;v&quot;:-3.4},{&quot;t&quot;:17.621,&quot;v&quot;:-2.6},{&quot;t&quot;:17.707,&quot;v&quot;:-1.9},{&quot;t&quot;:17.792,&quot;v&quot;:-1.5},{&quot;t&quot;:17.877,&quot;v&quot;:-1.1},{&quot;t&quot;:17.963,&quot;v&quot;:-0.8},{&quot;t&quot;:18.048,&quot;v&quot;:-0.5},{&quot;t&quot;:18.048,&quot;v&quot;:0}]},{&quot;target&quot;:&quot;fx.n5.gain&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:0.299,&quot;v&quot;:0},{&quot;t&quot;:0.384,&quot;v&quot;:-12.1},{&quot;t&quot;:0.469,&quot;v&quot;:-10.4},{&quot;t&quot;:0.555,&quot;v&quot;:-8.6},{&quot;t&quot;:0.64,&quot;v&quot;:-6.1},{&quot;t&quot;:0.725,&quot;v&quot;:-4.3},{&quot;t&quot;:0.811,&quot;v&quot;:-3.1},{&quot;t&quot;:0.896,&quot;v&quot;:-2.4},{&quot;t&quot;:0.981,&quot;v&quot;:-1.7},{&quot;t&quot;:1.067,&quot;v&quot;:-1.2},{&quot;t&quot;:1.152,&quot;v&quot;:-1},{&quot;t&quot;:1.237,&quot;v&quot;:-6.2},{&quot;t&quot;:1.323,&quot;v&quot;:-4.4},{&quot;t&quot;:1.408,&quot;v&quot;:-3.1},{&quot;t&quot;:1.493,&quot;v&quot;:-3.3},{&quot;t&quot;:1.579,&quot;v&quot;:-2.3},{&quot;t&quot;:1.664,&quot;v&quot;:-1.7},{&quot;t&quot;:1.749,&quot;v&quot;:-4.7},{&quot;t&quot;:1.835,&quot;v&quot;:-7.8},{&quot;t&quot;:1.92,&quot;v&quot;:-5.5},{&quot;t&quot;:2.005,&quot;v&quot;:-3.9},{&quot;t&quot;:2.091,&quot;v&quot;:-2.8},{&quot;t&quot;:2.176,&quot;v&quot;:-2},{&quot;t&quot;:2.261,&quot;v&quot;:-1.4},{&quot;t&quot;:2.347,&quot;v&quot;:-1},{&quot;t&quot;:2.432,&quot;v&quot;:-0.7},{&quot;t&quot;:2.688,&quot;v&quot;:-0.7},{&quot;t&quot;:2.773,&quot;v&quot;:-9.9},{&quot;t&quot;:2.859,&quot;v&quot;:-9.2},{&quot;t&quot;:2.944,&quot;v&quot;:-6.6},{&quot;t&quot;:3.029,&quot;v&quot;:-4.7},{&quot;t&quot;:3.115,&quot;v&quot;:-3.3},{&quot;t&quot;:3.2,&quot;v&quot;:-2.4},{&quot;t&quot;:3.285,&quot;v&quot;:-1.7},{&quot;t&quot;:3.371,&quot;v&quot;:-1.4},{&quot;t&quot;:3.456,&quot;v&quot;:-1},{&quot;t&quot;:3.712,&quot;v&quot;:-0.6},{&quot;t&quot;:3.797,&quot;v&quot;:-8.2},{&quot;t&quot;:3.883,&quot;v&quot;:-6.9},{&quot;t&quot;:3.968,&quot;v&quot;:-5.6},{&quot;t&quot;:4.053,&quot;v&quot;:-7.1},{&quot;t&quot;:4.139,&quot;v&quot;:-5.6},{&quot;t&quot;:4.224,&quot;v&quot;:-4},{&quot;t&quot;:4.309,&quot;v&quot;:-2.8},{&quot;t&quot;:4.395,&quot;v&quot;:-2},{&quot;t&quot;:4.48,&quot;v&quot;:-5.9},{&quot;t&quot;:4.565,&quot;v&quot;:-7},{&quot;t&quot;:4.651,&quot;v&quot;:-6},{&quot;t&quot;:4.736,&quot;v&quot;:-4.6},{&quot;t&quot;:4.821,&quot;v&quot;:-3.3},{&quot;t&quot;:4.907,&quot;v&quot;:-2.3},{&quot;t&quot;:4.992,&quot;v&quot;:-1.6},{&quot;t&quot;:5.077,&quot;v&quot;:-1.2},{&quot;t&quot;:5.163,&quot;v&quot;:-0.8},{&quot;t&quot;:5.333,&quot;v&quot;:-0.4},{&quot;t&quot;:5.419,&quot;v&quot;:-0.3},{&quot;t&quot;:7.04,&quot;v&quot;:0},{&quot;t&quot;:7.125,&quot;v&quot;:-5.9},{&quot;t&quot;:7.211,&quot;v&quot;:-7.3},{&quot;t&quot;:7.296,&quot;v&quot;:-5.3},{&quot;t&quot;:7.381,&quot;v&quot;:-6.1},{&quot;t&quot;:7.467,&quot;v&quot;:-10.7},{&quot;t&quot;:7.552,&quot;v&quot;:-7.6},{&quot;t&quot;:7.637,&quot;v&quot;:-5.4},{&quot;t&quot;:7.723,&quot;v&quot;:-8.9},{&quot;t&quot;:7.808,&quot;v&quot;:-7.1},{&quot;t&quot;:7.893,&quot;v&quot;:-5.6},{&quot;t&quot;:7.979,&quot;v&quot;:-10},{&quot;t&quot;:8.064,&quot;v&quot;:-7.1},{&quot;t&quot;:8.149,&quot;v&quot;:-5},{&quot;t&quot;:8.235,&quot;v&quot;:-6.7},{&quot;t&quot;:8.32,&quot;v&quot;:-5.6},{&quot;t&quot;:8.405,&quot;v&quot;:-4},{&quot;t&quot;:8.491,&quot;v&quot;:-2.8},{&quot;t&quot;:8.576,&quot;v&quot;:-2},{&quot;t&quot;:8.661,&quot;v&quot;:-1.4},{&quot;t&quot;:8.747,&quot;v&quot;:-1},{&quot;t&quot;:8.832,&quot;v&quot;:-0.7},{&quot;t&quot;:9.088,&quot;v&quot;:-0.3},{&quot;t&quot;:9.173,&quot;v&quot;:0},{&quot;t&quot;:10.624,&quot;v&quot;:0},{&quot;t&quot;:10.709,&quot;v&quot;:-10.5},{&quot;t&quot;:10.795,&quot;v&quot;:-8},{&quot;t&quot;:10.88,&quot;v&quot;:-5.7},{&quot;t&quot;:10.965,&quot;v&quot;:-4},{&quot;t&quot;:11.051,&quot;v&quot;:-3.3},{&quot;t&quot;:11.136,&quot;v&quot;:-2.6},{&quot;t&quot;:11.221,&quot;v&quot;:-1.9},{&quot;t&quot;:11.307,&quot;v&quot;:-1.3},{&quot;t&quot;:11.392,&quot;v&quot;:-0.9},{&quot;t&quot;:11.477,&quot;v&quot;:-0.7},{&quot;t&quot;:11.563,&quot;v&quot;:-5.6},{&quot;t&quot;:11.648,&quot;v&quot;:-4.4},{&quot;t&quot;:11.733,&quot;v&quot;:-3.1},{&quot;t&quot;:11.819,&quot;v&quot;:-10.8},{&quot;t&quot;:11.904,&quot;v&quot;:-10.2},{&quot;t&quot;:11.989,&quot;v&quot;:-7.2},{&quot;t&quot;:12.075,&quot;v&quot;:-5.2},{&quot;t&quot;:12.16,&quot;v&quot;:-4.5},{&quot;t&quot;:12.245,&quot;v&quot;:-3.2},{&quot;t&quot;:12.331,&quot;v&quot;:-2.8},{&quot;t&quot;:12.416,&quot;v&quot;:-5.2},{&quot;t&quot;:12.501,&quot;v&quot;:-4.1},{&quot;t&quot;:12.587,&quot;v&quot;:-4.2},{&quot;t&quot;:12.672,&quot;v&quot;:-5.7},{&quot;t&quot;:12.757,&quot;v&quot;:-4.2},{&quot;t&quot;:12.843,&quot;v&quot;:-7.4},{&quot;t&quot;:12.928,&quot;v&quot;:-5.3},{&quot;t&quot;:13.013,&quot;v&quot;:-3.7},{&quot;t&quot;:13.099,&quot;v&quot;:-2.7},{&quot;t&quot;:13.184,&quot;v&quot;:-1.9},{&quot;t&quot;:13.269,&quot;v&quot;:-1.3},{&quot;t&quot;:13.355,&quot;v&quot;:-1},{&quot;t&quot;:13.44,&quot;v&quot;:-0.7},{&quot;t&quot;:13.696,&quot;v&quot;:-0.2},{&quot;t&quot;:13.781,&quot;v&quot;:0},{&quot;t&quot;:14.123,&quot;v&quot;:0},{&quot;t&quot;:14.208,&quot;v&quot;:-1.4},{&quot;t&quot;:14.293,&quot;v&quot;:-1},{&quot;t&quot;:14.379,&quot;v&quot;:-9.9},{&quot;t&quot;:14.464,&quot;v&quot;:-7},{&quot;t&quot;:14.549,&quot;v&quot;:-5},{&quot;t&quot;:14.635,&quot;v&quot;:-8.2},{&quot;t&quot;:14.72,&quot;v&quot;:-7.8},{&quot;t&quot;:14.805,&quot;v&quot;:-6.6},{&quot;t&quot;:14.891,&quot;v&quot;:-8.2},{&quot;t&quot;:14.976,&quot;v&quot;:-5.9},{&quot;t&quot;:15.061,&quot;v&quot;:-4.2},{&quot;t&quot;:15.147,&quot;v&quot;:-3},{&quot;t&quot;:15.232,&quot;v&quot;:-2.1},{&quot;t&quot;:15.317,&quot;v&quot;:-1.5},{&quot;t&quot;:15.403,&quot;v&quot;:-4.9},{&quot;t&quot;:15.488,&quot;v&quot;:-11.9},{&quot;t&quot;:15.573,&quot;v&quot;:-8.5},{&quot;t&quot;:15.659,&quot;v&quot;:-6},{&quot;t&quot;:15.744,&quot;v&quot;:-4.3},{&quot;t&quot;:15.829,&quot;v&quot;:-3},{&quot;t&quot;:15.915,&quot;v&quot;:-2.2},{&quot;t&quot;:16,&quot;v&quot;:-4.6},{&quot;t&quot;:16.085,&quot;v&quot;:-3.7},{&quot;t&quot;:16.171,&quot;v&quot;:-2.7},{&quot;t&quot;:16.256,&quot;v&quot;:-1.9},{&quot;t&quot;:16.341,&quot;v&quot;:-1.3},{&quot;t&quot;:16.427,&quot;v&quot;:-1},{&quot;t&quot;:16.512,&quot;v&quot;:-0.7},{&quot;t&quot;:16.597,&quot;v&quot;:-9},{&quot;t&quot;:16.683,&quot;v&quot;:-8.5},{&quot;t&quot;:16.768,&quot;v&quot;:-7.6},{&quot;t&quot;:16.853,&quot;v&quot;:-6.2},{&quot;t&quot;:16.939,&quot;v&quot;:-4.4},{&quot;t&quot;:17.024,&quot;v&quot;:-6.3},{&quot;t&quot;:17.109,&quot;v&quot;:-4.9},{&quot;t&quot;:17.195,&quot;v&quot;:-3.5},{&quot;t&quot;:17.28,&quot;v&quot;:-3},{&quot;t&quot;:17.365,&quot;v&quot;:-2.2},{&quot;t&quot;:17.451,&quot;v&quot;:-7},{&quot;t&quot;:17.536,&quot;v&quot;:-5.3},{&quot;t&quot;:17.621,&quot;v&quot;:-4.6},{&quot;t&quot;:17.707,&quot;v&quot;:-3.3},{&quot;t&quot;:17.792,&quot;v&quot;:-2.9},{&quot;t&quot;:17.877,&quot;v&quot;:-2.1},{&quot;t&quot;:17.963,&quot;v&quot;:-1.5},{&quot;t&quot;:18.048,&quot;v&quot;:-1},{&quot;t&quot;:18.048,&quot;v&quot;:0}]},{&quot;target&quot;:&quot;fx.n6.gain&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:0.299,&quot;v&quot;:0},{&quot;t&quot;:0.384,&quot;v&quot;:-3.9},{&quot;t&quot;:0.469,&quot;v&quot;:-3.9},{&quot;t&quot;:0.555,&quot;v&quot;:-5},{&quot;t&quot;:0.64,&quot;v&quot;:-5.6},{&quot;t&quot;:0.725,&quot;v&quot;:-5.5},{&quot;t&quot;:0.811,&quot;v&quot;:-4.8},{&quot;t&quot;:0.896,&quot;v&quot;:-5.8},{&quot;t&quot;:0.981,&quot;v&quot;:-4.7},{&quot;t&quot;:1.067,&quot;v&quot;:-3.4},{&quot;t&quot;:1.237,&quot;v&quot;:-3.6},{&quot;t&quot;:1.323,&quot;v&quot;:-2.5},{&quot;t&quot;:1.408,&quot;v&quot;:-2.3},{&quot;t&quot;:1.493,&quot;v&quot;:-5.1},{&quot;t&quot;:1.579,&quot;v&quot;:-3.8},{&quot;t&quot;:1.664,&quot;v&quot;:-2.9},{&quot;t&quot;:1.749,&quot;v&quot;:-4.9},{&quot;t&quot;:1.835,&quot;v&quot;:-3.9},{&quot;t&quot;:1.92,&quot;v&quot;:-2.8},{&quot;t&quot;:2.005,&quot;v&quot;:-2},{&quot;t&quot;:2.091,&quot;v&quot;:-1.4},{&quot;t&quot;:2.176,&quot;v&quot;:-1},{&quot;t&quot;:2.261,&quot;v&quot;:-0.7},{&quot;t&quot;:2.517,&quot;v&quot;:-0.3},{&quot;t&quot;:2.603,&quot;v&quot;:0},{&quot;t&quot;:2.688,&quot;v&quot;:-3.9},{&quot;t&quot;:2.773,&quot;v&quot;:-4.6},{&quot;t&quot;:2.859,&quot;v&quot;:-4.3},{&quot;t&quot;:2.944,&quot;v&quot;:-3.2},{&quot;t&quot;:3.029,&quot;v&quot;:-3.1},{&quot;t&quot;:3.115,&quot;v&quot;:-3.7},{&quot;t&quot;:3.2,&quot;v&quot;:-3.7},{&quot;t&quot;:3.285,&quot;v&quot;:-3.2},{&quot;t&quot;:3.371,&quot;v&quot;:-5.3},{&quot;t&quot;:3.456,&quot;v&quot;:-4.4},{&quot;t&quot;:3.541,&quot;v&quot;:-3.3},{&quot;t&quot;:3.627,&quot;v&quot;:-2.3},{&quot;t&quot;:3.712,&quot;v&quot;:-1.7},{&quot;t&quot;:3.797,&quot;v&quot;:-1.8},{&quot;t&quot;:3.883,&quot;v&quot;:-3.7},{&quot;t&quot;:3.968,&quot;v&quot;:-5.8},{&quot;t&quot;:4.053,&quot;v&quot;:-5.9},{&quot;t&quot;:4.139,&quot;v&quot;:-6.5},{&quot;t&quot;:4.224,&quot;v&quot;:-5},{&quot;t&quot;:4.309,&quot;v&quot;:-3.5},{&quot;t&quot;:4.395,&quot;v&quot;:-2.5},{&quot;t&quot;:4.651,&quot;v&quot;:-2.2},{&quot;t&quot;:4.736,&quot;v&quot;:-2},{&quot;t&quot;:4.821,&quot;v&quot;:-1.5},{&quot;t&quot;:4.907,&quot;v&quot;:-1},{&quot;t&quot;:4.992,&quot;v&quot;:-0.7},{&quot;t&quot;:5.077,&quot;v&quot;:-0.5},{&quot;t&quot;:5.248,&quot;v&quot;:-0.3},{&quot;t&quot;:5.333,&quot;v&quot;:0},{&quot;t&quot;:6.955,&quot;v&quot;:0},{&quot;t&quot;:7.04,&quot;v&quot;:-4.1},{&quot;t&quot;:7.125,&quot;v&quot;:-6.8},{&quot;t&quot;:7.211,&quot;v&quot;:-6.3},{&quot;t&quot;:7.296,&quot;v&quot;:-6.9},{&quot;t&quot;:7.381,&quot;v&quot;:-6},{&quot;t&quot;:7.467,&quot;v&quot;:-6.8},{&quot;t&quot;:7.552,&quot;v&quot;:-6.1},{&quot;t&quot;:7.637,&quot;v&quot;:-5.6},{&quot;t&quot;:7.723,&quot;v&quot;:-5.1},{&quot;t&quot;:7.808,&quot;v&quot;:-4.4},{&quot;t&quot;:7.893,&quot;v&quot;:-3.1},{&quot;t&quot;:7.979,&quot;v&quot;:-4.5},{&quot;t&quot;:8.064,&quot;v&quot;:-3.2},{&quot;t&quot;:8.149,&quot;v&quot;:-2.3},{&quot;t&quot;:8.235,&quot;v&quot;:-2.1},{&quot;t&quot;:8.32,&quot;v&quot;:-1.5},{&quot;t&quot;:8.405,&quot;v&quot;:-1.3},{&quot;t&quot;:8.491,&quot;v&quot;:-1},{&quot;t&quot;:8.576,&quot;v&quot;:-0.7},{&quot;t&quot;:8.661,&quot;v&quot;:-0.5},{&quot;t&quot;:8.832,&quot;v&quot;:-0.2},{&quot;t&quot;:8.917,&quot;v&quot;:0},{&quot;t&quot;:10.624,&quot;v&quot;:0},{&quot;t&quot;:10.709,&quot;v&quot;:-1.7},{&quot;t&quot;:10.795,&quot;v&quot;:-5.1},{&quot;t&quot;:10.88,&quot;v&quot;:-5.7},{&quot;t&quot;:10.965,&quot;v&quot;:-5.5},{&quot;t&quot;:11.051,&quot;v&quot;:-5.1},{&quot;t&quot;:11.136,&quot;v&quot;:-6.4},{&quot;t&quot;:11.221,&quot;v&quot;:-5.1},{&quot;t&quot;:11.307,&quot;v&quot;:-3.7},{&quot;t&quot;:11.392,&quot;v&quot;:-2.6},{&quot;t&quot;:11.477,&quot;v&quot;:-1.9},{&quot;t&quot;:11.563,&quot;v&quot;:-4.3},{&quot;t&quot;:11.648,&quot;v&quot;:-4},{&quot;t&quot;:11.733,&quot;v&quot;:-2.9},{&quot;t&quot;:11.819,&quot;v&quot;:-3.6},{&quot;t&quot;:11.904,&quot;v&quot;:-4.2},{&quot;t&quot;:11.989,&quot;v&quot;:-5.4},{&quot;t&quot;:12.075,&quot;v&quot;:-3.8},{&quot;t&quot;:12.16,&quot;v&quot;:-2.7},{&quot;t&quot;:12.245,&quot;v&quot;:-1.9},{&quot;t&quot;:12.331,&quot;v&quot;:-1.5},{&quot;t&quot;:12.416,&quot;v&quot;:-1.2},{&quot;t&quot;:12.587,&quot;v&quot;:-1.1},{&quot;t&quot;:12.672,&quot;v&quot;:-2.8},{&quot;t&quot;:12.757,&quot;v&quot;:-2.1},{&quot;t&quot;:12.843,&quot;v&quot;:-1.9},{&quot;t&quot;:12.928,&quot;v&quot;:-4.6},{&quot;t&quot;:13.013,&quot;v&quot;:-4.2},{&quot;t&quot;:13.099,&quot;v&quot;:-3},{&quot;t&quot;:13.184,&quot;v&quot;:-2.1},{&quot;t&quot;:13.269,&quot;v&quot;:-1.5},{&quot;t&quot;:13.355,&quot;v&quot;:-1.1},{&quot;t&quot;:13.44,&quot;v&quot;:-0.8},{&quot;t&quot;:13.611,&quot;v&quot;:-0.4},{&quot;t&quot;:13.696,&quot;v&quot;:-0.3},{&quot;t&quot;:13.781,&quot;v&quot;:-4.5},{&quot;t&quot;:13.867,&quot;v&quot;:-3.8},{&quot;t&quot;:13.952,&quot;v&quot;:-2.9},{&quot;t&quot;:14.037,&quot;v&quot;:-4.9},{&quot;t&quot;:14.123,&quot;v&quot;:-4.9},{&quot;t&quot;:14.208,&quot;v&quot;:-3.9},{&quot;t&quot;:14.293,&quot;v&quot;:-2.8},{&quot;t&quot;:14.379,&quot;v&quot;:-5.5},{&quot;t&quot;:14.464,&quot;v&quot;:-5.2},{&quot;t&quot;:14.549,&quot;v&quot;:-4.7},{&quot;t&quot;:14.635,&quot;v&quot;:-4.9},{&quot;t&quot;:14.72,&quot;v&quot;:-4},{&quot;t&quot;:14.805,&quot;v&quot;:-3.1},{&quot;t&quot;:14.891,&quot;v&quot;:-3.2},{&quot;t&quot;:14.976,&quot;v&quot;:-2.3},{&quot;t&quot;:15.061,&quot;v&quot;:-1.6},{&quot;t&quot;:15.147,&quot;v&quot;:-1.2},{&quot;t&quot;:15.232,&quot;v&quot;:-0.8},{&quot;t&quot;:15.317,&quot;v&quot;:-0.6},{&quot;t&quot;:15.403,&quot;v&quot;:-1.4},{&quot;t&quot;:15.488,&quot;v&quot;:-4.4},{&quot;t&quot;:15.573,&quot;v&quot;:-4.2},{&quot;t&quot;:15.659,&quot;v&quot;:-6.5},{&quot;t&quot;:15.744,&quot;v&quot;:-5.4},{&quot;t&quot;:15.829,&quot;v&quot;:-4},{&quot;t&quot;:15.915,&quot;v&quot;:-6.3},{&quot;t&quot;:16,&quot;v&quot;:-5},{&quot;t&quot;:16.085,&quot;v&quot;:-4.2},{&quot;t&quot;:16.171,&quot;v&quot;:-3},{&quot;t&quot;:16.256,&quot;v&quot;:-2.1},{&quot;t&quot;:16.341,&quot;v&quot;:-1.5},{&quot;t&quot;:16.427,&quot;v&quot;:-1.1},{&quot;t&quot;:16.512,&quot;v&quot;:-0.8},{&quot;t&quot;:16.597,&quot;v&quot;:-4.1},{&quot;t&quot;:16.683,&quot;v&quot;:-3.5},{&quot;t&quot;:16.768,&quot;v&quot;:-2.9},{&quot;t&quot;:16.853,&quot;v&quot;:-2.3},{&quot;t&quot;:16.939,&quot;v&quot;:-1.6},{&quot;t&quot;:17.024,&quot;v&quot;:-3.1},{&quot;t&quot;:17.109,&quot;v&quot;:-2.7},{&quot;t&quot;:17.195,&quot;v&quot;:-2.1},{&quot;t&quot;:17.28,&quot;v&quot;:-4.8},{&quot;t&quot;:17.451,&quot;v&quot;:-5},{&quot;t&quot;:17.536,&quot;v&quot;:-4},{&quot;t&quot;:17.621,&quot;v&quot;:-3.8},{&quot;t&quot;:17.707,&quot;v&quot;:-2.8},{&quot;t&quot;:17.792,&quot;v&quot;:-3.7},{&quot;t&quot;:17.877,&quot;v&quot;:-2.6},{&quot;t&quot;:17.963,&quot;v&quot;:-1.9},{&quot;t&quot;:18.048,&quot;v&quot;:-1.3},{&quot;t&quot;:18.048,&quot;v&quot;:0}]},{&quot;target&quot;:&quot;fx.n7.gain&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:0.213,&quot;v&quot;:0},{&quot;t&quot;:0.299,&quot;v&quot;:-15.7},{&quot;t&quot;:0.469,&quot;v&quot;:-15.4},{&quot;t&quot;:0.555,&quot;v&quot;:-18.5},{&quot;t&quot;:0.64,&quot;v&quot;:-19.1},{&quot;t&quot;:0.811,&quot;v&quot;:-19.2},{&quot;t&quot;:0.896,&quot;v&quot;:-18.6},{&quot;t&quot;:0.981,&quot;v&quot;:-18},{&quot;t&quot;:1.067,&quot;v&quot;:-19},{&quot;t&quot;:1.92,&quot;v&quot;:-19.2},{&quot;t&quot;:2.005,&quot;v&quot;:-18.5},{&quot;t&quot;:2.091,&quot;v&quot;:-17.9},{&quot;t&quot;:2.176,&quot;v&quot;:-17.3},{&quot;t&quot;:2.261,&quot;v&quot;:-16.7},{&quot;t&quot;:2.347,&quot;v&quot;:-16.1},{&quot;t&quot;:2.432,&quot;v&quot;:-15.5},{&quot;t&quot;:2.517,&quot;v&quot;:-15},{&quot;t&quot;:2.603,&quot;v&quot;:-14.4},{&quot;t&quot;:2.688,&quot;v&quot;:-14.4},{&quot;t&quot;:2.773,&quot;v&quot;:-18.3},{&quot;t&quot;:2.859,&quot;v&quot;:-19},{&quot;t&quot;:3.115,&quot;v&quot;:-18.6},{&quot;t&quot;:3.2,&quot;v&quot;:-17.9},{&quot;t&quot;:3.285,&quot;v&quot;:-19},{&quot;t&quot;:3.627,&quot;v&quot;:-19.2},{&quot;t&quot;:3.712,&quot;v&quot;:-18.5},{&quot;t&quot;:3.797,&quot;v&quot;:-19.1},{&quot;t&quot;:4.309,&quot;v&quot;:-19.1},{&quot;t&quot;:4.395,&quot;v&quot;:-18.5},{&quot;t&quot;:4.48,&quot;v&quot;:-19.1},{&quot;t&quot;:4.992,&quot;v&quot;:-19.2},{&quot;t&quot;:5.077,&quot;v&quot;:-18.5},{&quot;t&quot;:5.163,&quot;v&quot;:-17.9},{&quot;t&quot;:5.248,&quot;v&quot;:-17.3},{&quot;t&quot;:5.333,&quot;v&quot;:-16.7},{&quot;t&quot;:5.419,&quot;v&quot;:-16.1},{&quot;t&quot;:5.504,&quot;v&quot;:-15.5},{&quot;t&quot;:5.589,&quot;v&quot;:-15},{&quot;t&quot;:5.675,&quot;v&quot;:-14.4},{&quot;t&quot;:5.76,&quot;v&quot;:-13.9},{&quot;t&quot;:5.845,&quot;v&quot;:-13.5},{&quot;t&quot;:5.931,&quot;v&quot;:-13},{&quot;t&quot;:6.016,&quot;v&quot;:-12.5},{&quot;t&quot;:6.101,&quot;v&quot;:-12.1},{&quot;t&quot;:6.187,&quot;v&quot;:-11.7},{&quot;t&quot;:6.272,&quot;v&quot;:-11.3},{&quot;t&quot;:6.357,&quot;v&quot;:-10.9},{&quot;t&quot;:6.443,&quot;v&quot;:-10.5},{&quot;t&quot;:6.528,&quot;v&quot;:-10.1},{&quot;t&quot;:6.613,&quot;v&quot;:-9.8},{&quot;t&quot;:6.699,&quot;v&quot;:-9.4},{&quot;t&quot;:6.784,&quot;v&quot;:-9.1},{&quot;t&quot;:6.869,&quot;v&quot;:-8.8},{&quot;t&quot;:6.955,&quot;v&quot;:-8.5},{&quot;t&quot;:7.04,&quot;v&quot;:-16.9},{&quot;t&quot;:7.125,&quot;v&quot;:-18.8},{&quot;t&quot;:7.467,&quot;v&quot;:-18.4},{&quot;t&quot;:7.552,&quot;v&quot;:-17.8},{&quot;t&quot;:7.637,&quot;v&quot;:-19},{&quot;t&quot;:8.491,&quot;v&quot;:-18.9},{&quot;t&quot;:8.576,&quot;v&quot;:-18.2},{&quot;t&quot;:8.661,&quot;v&quot;:-17.6},{&quot;t&quot;:8.747,&quot;v&quot;:-17},{&quot;t&quot;:8.832,&quot;v&quot;:-16.4},{&quot;t&quot;:8.917,&quot;v&quot;:-15.8},{&quot;t&quot;:9.003,&quot;v&quot;:-15.3},{&quot;t&quot;:9.088,&quot;v&quot;:-14.7},{&quot;t&quot;:9.173,&quot;v&quot;:-14.2},{&quot;t&quot;:9.259,&quot;v&quot;:-13.7},{&quot;t&quot;:9.344,&quot;v&quot;:-13.2},{&quot;t&quot;:9.429,&quot;v&quot;:-12.8},{&quot;t&quot;:9.515,&quot;v&quot;:-12.3},{&quot;t&quot;:9.6,&quot;v&quot;:-11.9},{&quot;t&quot;:9.685,&quot;v&quot;:-11.5},{&quot;t&quot;:9.771,&quot;v&quot;:-11.1},{&quot;t&quot;:9.856,&quot;v&quot;:-10.7},{&quot;t&quot;:9.941,&quot;v&quot;:-10.3},{&quot;t&quot;:10.027,&quot;v&quot;:-10},{&quot;t&quot;:10.112,&quot;v&quot;:-9.6},{&quot;t&quot;:10.197,&quot;v&quot;:-9.3},{&quot;t&quot;:10.283,&quot;v&quot;:-9},{&quot;t&quot;:10.368,&quot;v&quot;:-8.6},{&quot;t&quot;:10.453,&quot;v&quot;:-8.3},{&quot;t&quot;:10.539,&quot;v&quot;:-8.1},{&quot;t&quot;:10.624,&quot;v&quot;:-7.8},{&quot;t&quot;:10.709,&quot;v&quot;:-17.1},{&quot;t&quot;:10.795,&quot;v&quot;:-18.8},{&quot;t&quot;:13.184,&quot;v&quot;:-18.5},{&quot;t&quot;:13.269,&quot;v&quot;:-17.9},{&quot;t&quot;:13.355,&quot;v&quot;:-17.3},{&quot;t&quot;:13.44,&quot;v&quot;:-16.7},{&quot;t&quot;:13.525,&quot;v&quot;:-16.1},{&quot;t&quot;:13.611,&quot;v&quot;:-15.5},{&quot;t&quot;:13.696,&quot;v&quot;:-15},{&quot;t&quot;:13.781,&quot;v&quot;:-18.4},{&quot;t&quot;:13.867,&quot;v&quot;:-19},{&quot;t&quot;:14.976,&quot;v&quot;:-19.2},{&quot;t&quot;:15.061,&quot;v&quot;:-18.5},{&quot;t&quot;:15.147,&quot;v&quot;:-17.9},{&quot;t&quot;:15.232,&quot;v&quot;:-17.3},{&quot;t&quot;:15.317,&quot;v&quot;:-16.7},{&quot;t&quot;:15.403,&quot;v&quot;:-18.7},{&quot;t&quot;:15.573,&quot;v&quot;:-19.1},{&quot;t&quot;:15.659,&quot;v&quot;:-19.2},{&quot;t&quot;:16.171,&quot;v&quot;:-19.2},{&quot;t&quot;:16.256,&quot;v&quot;:-18.5},{&quot;t&quot;:16.341,&quot;v&quot;:-17.9},{&quot;t&quot;:16.427,&quot;v&quot;:-17.3},{&quot;t&quot;:16.512,&quot;v&quot;:-16.7},{&quot;t&quot;:16.597,&quot;v&quot;:-17.8},{&quot;t&quot;:16.683,&quot;v&quot;:-18.9},{&quot;t&quot;:18.048,&quot;v&quot;:-18.5},{&quot;t&quot;:18.133,&quot;v&quot;:-17.9},{&quot;t&quot;:18.219,&quot;v&quot;:-17.3},{&quot;t&quot;:18.304,&quot;v&quot;:-16.7},{&quot;t&quot;:18.389,&quot;v&quot;:-16.1},{&quot;t&quot;:18.475,&quot;v&quot;:-15.5},{&quot;t&quot;:18.56,&quot;v&quot;:-15},{&quot;t&quot;:18.645,&quot;v&quot;:-14.4},{&quot;t&quot;:18.731,&quot;v&quot;:-13.9},{&quot;t&quot;:18.816,&quot;v&quot;:-13.5},{&quot;t&quot;:18.901,&quot;v&quot;:-13},{&quot;t&quot;:18.987,&quot;v&quot;:-12.5},{&quot;t&quot;:19.072,&quot;v&quot;:-12.1},{&quot;t&quot;:19.157,&quot;v&quot;:-11.7},{&quot;t&quot;:19.243,&quot;v&quot;:-11.3},{&quot;t&quot;:19.328,&quot;v&quot;:-10.9},{&quot;t&quot;:19.413,&quot;v&quot;:-10.5},{&quot;t&quot;:19.499,&quot;v&quot;:-10.1},{&quot;t&quot;:19.584,&quot;v&quot;:-9.8},{&quot;t&quot;:19.669,&quot;v&quot;:-9.4},{&quot;t&quot;:19.755,&quot;v&quot;:-9.1},{&quot;t&quot;:19.84,&quot;v&quot;:-8.8},{&quot;t&quot;:19.925,&quot;v&quot;:-8.5},{&quot;t&quot;:20.011,&quot;v&quot;:-8.2},{&quot;t&quot;:20.096,&quot;v&quot;:-7.9},{&quot;t&quot;:20.181,&quot;v&quot;:-7.6},{&quot;t&quot;:20.267,&quot;v&quot;:-7.4},{&quot;t&quot;:20.352,&quot;v&quot;:-7.1},{&quot;t&quot;:20.437,&quot;v&quot;:-6.8},{&quot;t&quot;:20.523,&quot;v&quot;:-6.6},{&quot;t&quot;:20.693,&quot;v&quot;:-6.2},{&quot;t&quot;:20.779,&quot;v&quot;:-5.9},{&quot;t&quot;:20.949,&quot;v&quot;:-5.5},{&quot;t&quot;:21.035,&quot;v&quot;:-5.3},{&quot;t&quot;:21.205,&quot;v&quot;:-5},{&quot;t&quot;:21.291,&quot;v&quot;:-4.8},{&quot;t&quot;:21.461,&quot;v&quot;:-4.5},{&quot;t&quot;:21.547,&quot;v&quot;:-4.3},{&quot;t&quot;:21.803,&quot;v&quot;:-3.9},{&quot;t&quot;:21.888,&quot;v&quot;:-3.7},{&quot;t&quot;:22.144,&quot;v&quot;:-3.4},{&quot;t&quot;:22.229,&quot;v&quot;:-3.2},{&quot;t&quot;:22.571,&quot;v&quot;:-2.8},{&quot;t&quot;:22.656,&quot;v&quot;:-2.7},{&quot;t&quot;:23.083,&quot;v&quot;:-2.3},{&quot;t&quot;:23.168,&quot;v&quot;:-2.2},{&quot;t&quot;:23.68,&quot;v&quot;:-1.8},{&quot;t&quot;:23.765,&quot;v&quot;:-1.7},{&quot;t&quot;:24.448,&quot;v&quot;:-1.3},{&quot;t&quot;:24.533,&quot;v&quot;:-1.2},{&quot;t&quot;:25.728,&quot;v&quot;:-0.8},{&quot;t&quot;:25.813,&quot;v&quot;:-0.7},{&quot;t&quot;:28.885,&quot;v&quot;:-0.2},{&quot;t&quot;:28.971,&quot;v&quot;:0}]}]}"></audio>
+      <audio id="sfx" src="assets/sfx.wav" data-start="0" data-duration="18.8" data-volume="0.75" data-track-index="12"></audio>
+    </div>
+
+    <script>
+      // One take: every value on screen is a pure function of t, driven by a single proxy tween.
+      const END = 18.8;
+      // The same film in two frames: index.html is 16:9, portrait.html (generated by tools/make-portrait.py) is 9:16.
+      const ROOT = document.getElementById("root");
+      const PORTRAIT = Number(ROOT.dataset.height) > Number(ROOT.dataset.width);
+      if (PORTRAIT) ROOT.classList.add("portrait");
+      const $ = (id) => document.getElementById(id);
+      const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+      const lerp = (a, b, p) => a + (b - a) * p;
+      const prog = (t, a, b) => clamp((t - a) / (b - a));
+      const ease = {
+        linear: (p) => p,
+        sineOut: (p) => Math.sin((p * Math.PI) / 2),
+        sineInOut: (p) => -(Math.cos(Math.PI * p) - 1) / 2,
+        expoOut: (p) => (p >= 1 ? 1 : 1 - Math.pow(2, -10 * p)),
+        expoInOut: (p) => (p <= 0 ? 0 : p >= 1 ? 1 : p < 0.5 ? Math.pow(2, 20 * p - 10) / 2 : (2 - Math.pow(2, -20 * p + 10)) / 2),
+        backOut: (p) => { const c = 1.9; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
+      };
+
+      // ── the sheet: paintings down a column, then the site's windows along a row (world px) ──
+      const P = [
+        { id: "p1", cx: 0, cy: 0, w: 840, h: 835.7 },
+        { id: "p2", cx: -120, cy: 1150, w: 600, h: 601.5 },
+        { id: "p3", cx: 120, cy: 2050, w: 560, h: 563.7 },
+        { id: "p4", cx: -120, cy: 2950, w: 545, h: 576.3 },
+        { id: "p5", cx: 120, cy: 3880, w: 470, h: 668 },
+        { id: "p6", cx: 0, cy: 4750, w: 270, h: 268.9 },
+      ];
+      const BALL1 = { x: -420 + 0.3159 * 840, y: -835.7 / 2 + 0.4281 * 835.7, d: 0.1014 * 840 }; // painted ball in Figure in Motion
+      // contacts sit low on each canvas, leaning toward the next one; the last is Ball on Blue's own ball
+      const C = [ [0, 1312.4], [8, 2202.2], [-11, 3105.6], [26, 4047], [0, 4741.0] ];
+      const T = [2.75, 3.95, 4.85, 5.5, 6.0];
+      const D = 120; // the ball on the sheet = Ball on Blue's painted ball
+
+      // Windows: desktop screenshots scaled so the Fine-art card lands exactly on Ball on Blue.
+      const K = 270 / 697, WW = 1920 * K, WH = 1080 * K, BAR = 24;
+      const WIN = [
+        { id: "w0", cx: 0 - 917.5 * K + WW / 2, cy: 4750 - 540 * K + WH / 2, hit: [0, 4741], tin: 9.15 },
+        { id: "w1", cx: 1150, cy: 4640, hit: [1030, 4735], tin: 10.75 },
+        { id: "w2", cx: 2280, cy: 4840, hit: [2380, 4925], tin: 11.5 },
+        { id: "w3", cx: 3410, cy: 4700, hit: [3330, 4800], tin: 12.25 },
+      ];
+      const ENDC = { cx: 4560, top: 4560 }; // end card on the same sheet
+
+      // ── camera: keyed where each beat needs it; ax/ay is where that world point sits on screen ──
+      const CK_LANDSCAPE = [
+        { t: 0, cx: -125, cy: -62, z: 2.45, ax: 960 },
+        { t: 1.0, cx: -127, cy: -63, z: 2.6, ax: 960, e: "sineInOut" },
+        { t: 1.55, cx: -130, cy: -64, z: 2.68, ax: 960, e: "sineInOut" },
+        { t: 2.0, cx: 0, cy: 0, z: 1.0, ax: 960, e: "expoOut" },          // pull back as it comes at the lens
+        { t: 2.85, cx: -120, cy: 1150, z: 0.95, ax: 640, e: "expoInOut" }, // fall with it down the sheet
+        // arrive just after each bounce, let the painting bloom in frame, leave just before the next
+        { t: 3.35, cx: -120, cy: 1150, z: 0.95, ax: 640 },
+        { t: 4.05, cx: 120, cy: 2050, z: 0.95, ax: 640, e: "sineInOut" },
+        { t: 4.4, cx: 120, cy: 2050, z: 0.95, ax: 640 },
+        { t: 4.95, cx: -120, cy: 2950, z: 0.97, ax: 640, e: "sineInOut" },
+        { t: 5.15, cx: -120, cy: 2950, z: 0.97, ax: 640 },
+        { t: 5.6, cx: 120, cy: 3880, z: 0.93, ax: 640, e: "sineInOut" },
+        { t: 5.72, cx: 120, cy: 3880, z: 0.93, ax: 640 },
+        { t: 6.15, cx: 0, cy: 4741, z: 3.185, ax: 960, e: "expoInOut" },
+        { t: 7.0, cx: 0, cy: 4741, z: 3.6, ax: 960, e: "sineInOut" },
+        { t: 9.0, cx: 0, cy: 4741, z: 3.6, ax: 960 },                      // dead still: the rest
+        { t: 9.7, cx: WIN[0].cx, cy: WIN[0].cy - BAR / 2, z: 2.3, ax: 960, e: "expoInOut" },
+        { t: 10.2, cx: WIN[0].cx, cy: WIN[0].cy - BAR / 2, z: 2.3, ax: 960 },
+        { t: 10.85, cx: 1150, cy: 4628, z: 2.3, ax: 960, e: "expoInOut" },
+        { t: 11.0, cx: 1150, cy: 4628, z: 2.3, ax: 960 },
+        { t: 11.6, cx: 2280, cy: 4828, z: 2.3, ax: 960, e: "expoInOut" },
+        { t: 11.75, cx: 2280, cy: 4828, z: 2.3, ax: 960 },
+        { t: 12.35, cx: 3410, cy: 4688, z: 2.3, ax: 960, e: "expoInOut" },
+        { t: 12.6, cx: 3410, cy: 4688, z: 2.3, ax: 960 },
+        { t: 13.75, cx: 4560, cy: 4727, z: 1.55, ax: 960, e: "expoInOut" },
+        { t: END, cx: 4560, cy: 4727, z: 1.55, ax: 960 },
+      ].map((k) => ({ ay: 540, ...k }));
+      // Portrait: the same moves, framed for a tall screen (paintings above their words, windows smaller in more paper).
+      const CK_PORTRAIT = [
+        { t: 0, cx: -125, cy: -62, z: 2.45, ay: 960 },
+        { t: 1.0, cx: -127, cy: -63, z: 2.6, ay: 960, e: "sineInOut" },
+        { t: 1.55, cx: -130, cy: -64, z: 2.68, ay: 960, e: "sineInOut" },
+        { t: 2.0, cx: 0, cy: 0, z: 1.0, ay: 960, e: "expoOut" },
+        { t: 2.85, cx: -120, cy: 1150, z: 1.05, ay: 820, e: "expoInOut" },
+        { t: 3.35, cx: -120, cy: 1150, z: 1.05, ay: 820 },
+        { t: 4.05, cx: 120, cy: 2050, z: 1.05, ay: 820, e: "sineInOut" },
+        { t: 4.4, cx: 120, cy: 2050, z: 1.05, ay: 820 },
+        { t: 4.95, cx: -120, cy: 2950, z: 1.07, ay: 820, e: "sineInOut" },
+        { t: 5.15, cx: -120, cy: 2950, z: 1.07, ay: 820 },
+        { t: 5.6, cx: 120, cy: 3880, z: 1.02, ay: 820, e: "sineInOut" },
+        { t: 5.72, cx: 120, cy: 3880, z: 1.02, ay: 820 },
+        { t: 6.15, cx: 0, cy: 4741, z: 3.6, ay: 900, e: "expoInOut" },
+        { t: 7.0, cx: 0, cy: 4741, z: 3.75, ay: 900, e: "sineInOut" },
+        { t: 9.0, cx: 0, cy: 4741, z: 3.75, ay: 900 },
+        { t: 9.7, cx: WIN[0].cx, cy: WIN[0].cy - BAR / 2, z: 1.38, ay: 900, e: "expoInOut" },
+        { t: 10.2, cx: WIN[0].cx, cy: WIN[0].cy - BAR / 2, z: 1.38, ay: 900 },
+        { t: 10.85, cx: 1150, cy: 4628, z: 1.38, ay: 900, e: "expoInOut" },
+        { t: 11.0, cx: 1150, cy: 4628, z: 1.38, ay: 900 },
+        { t: 11.6, cx: 2280, cy: 4828, z: 1.38, ay: 900, e: "expoInOut" },
+        { t: 11.75, cx: 2280, cy: 4828, z: 1.38, ay: 900 },
+        { t: 12.35, cx: 3410, cy: 4688, z: 1.38, ay: 900, e: "expoInOut" },
+        { t: 12.6, cx: 3410, cy: 4688, z: 1.38, ay: 900 },
+        { t: 13.75, cx: 4560, cy: 4727, z: 0.96, ay: 960, e: "expoInOut" },
+        { t: END, cx: 4560, cy: 4727, z: 0.96, ay: 960 },
+      ].map((k) => ({ ax: 540, ...k }));
+      const CK = PORTRAIT ? CK_PORTRAIT : CK_LANDSCAPE;
+      function cam(t) {
+        let i = 0;
+        while (i < CK.length - 2 && t >= CK[i + 1].t) i++;
+        const a = CK[i], b = CK[i + 1];
+        const p = (ease[b.e] || ease.linear)(prog(t, a.t, b.t));
+        return { cx: lerp(a.cx, b.cx, p), cy: lerp(a.cy, b.cy, p), z: Math.exp(lerp(Math.log(a.z), Math.log(b.z), p)), ax: lerp(a.ax, b.ax, p), ay: lerp(a.ay, b.ay, p) };
+      }
+      let RULE = { x: 4560, y: 4760 }, DOT = { x: 4900, y: 4640, d: 30 };
+      const ALL_CONTACTS = [...T, 10.75, 11.5, 12.25, 13.65, 14.05];
+      function shake(t) {
+        let x = 0, y = 0;
+        for (const tc of ALL_CONTACTS) {
+          const d = t - tc;
+          if (d < 0 || d > 0.6) continue;
+          const a = (tc === 6.0 ? 12 : tc > 10 ? 5 : 8) * Math.exp(-d / 0.13);
+          x += a * Math.sin(2 * Math.PI * 9 * d) * 0.6;
+          y += a * Math.sin(2 * Math.PI * 11 * d + 1);
+        }
+        const hand = t < 6.2 ? 1 : t < 9.0 ? 0 : t < 14.4 ? 0.6 : 0.25; // a hand on the camera, still in the holds
+        x += hand * (3 * Math.sin(t * 1.3) + 2 * Math.sin(t * 2.9 + 1));
+        y += hand * (3 * Math.sin(t * 1.1 + 2) + 2 * Math.sin(t * 2.3));
+        return { x, y };
+      }
+      const squash = (t) => {
+        let k = 1;
+        for (const tc of ALL_CONTACTS) k -= 0.13 * Math.exp(-Math.pow((t - tc) / 0.035, 2));
+        return k;
+      };
+
+      // ── the ball, always in sheet coordinates. Mid-hop it travels relative to the camera,
+      //    so a high, close ball never swings out of frame, and it still lands exactly on each contact. ──
+      function hopRel(t, t0, t1, from, to, e0, E) {
+        const s = prog(t, t0, t1), c = cam(t), c0 = cam(t0), c1 = cam(t1);
+        const o0 = [from[0] - c0.cx, from[1] - c0.cy], o1 = [to[0] - c1.cx, to[1] - c1.cy];
+        return { x: c.cx + lerp(o0[0], o1[0], s), y: c.cy + lerp(o0[1], o1[1], s), e: e0 * (1 - s) + 4 * E * s * (1 - s), s };
+      }
+      const LIFT = [C[4][0] + 40, C[4][1] - 22];
+      function ballState(t) {
+        // 0 – 1.55 · resting in the painting, then peeling up off the canvas
+        if (t < 1.55) {
+          const p = ease.sineOut(prog(t, 1.0, 1.5));
+          return { x: BALL1.x + 4 * p, y: BALL1.y - 3 * p, e: 0.25 * p, d: BALL1.d, tex: 0, op: 1, rot: 0 };
+        }
+        // 1.55 – 2.05 · served at the lens
+        if (t < 2.05) {
+          const q = prog(t, 1.55, 2.05), c = cam(t);
+          return { x: lerp(BALL1.x + 4, c.cx, q), y: lerp(BALL1.y - 3, c.cy, q), e: 0.25 + 0.61 * q * q, d: lerp(BALL1.d, D, q), tex: clamp((q - 0.1) / 0.4), op: 1, rot: 200 * q };
+        }
+        // 2.05 – 2.75 · falls back, travelling down the sheet with the camera
+        if (t < T[0]) {
+          const p = prog(t, 2.05, T[0]), c = cam(t);
+          return { x: c.cx + (C[0][0] - P[1].cx) * p, y: c.cy + (C[0][1] - P[1].cy) * p, e: 0.86 * (1 - p * p), d: D, tex: 1, op: 1, rot: 200 + 160 * p };
+        }
+        // the rally: one turn per hop, so it lands on Ball on Blue upright
+        for (let i = 0; i < T.length - 1; i++) {
+          if (t < T[i + 1]) {
+            const h = hopRel(t, T[i], T[i + 1], C[i], C[i + 1], 0, 0.32 * (T[i + 1] - T[i]));
+            return { x: h.x, y: h.y, e: h.e, d: D, tex: 1, op: 1, rot: 360 * (1 + i + h.s) };
+          }
+        }
+        // 6.0 – 9.9 · lands in the painting and melts into its own painted ball
+        if (t < 9.9) return { x: C[4][0], y: C[4][1], e: 0, d: D, tex: 1, op: 1 - prog(t, 6.35, 6.8), rot: 0 };
+        // 9.9 – 10.25 · the site's move: it lifts off the card
+        if (t < 10.25) {
+          const p = ease.sineOut(prog(t, 9.9, 10.25));
+          return { x: lerp(C[4][0], LIFT[0], p), y: lerp(C[4][1], LIFT[1], p), e: 0.3 * p, d: D, tex: 1, op: prog(t, 9.9, 9.96), rot: 14 * p };
+        }
+        // window to window, then the long arc to the end card
+        const legs = [
+          [10.25, 10.75, LIFT, WIN[1].hit, 0.3, 0.2, D, 92],
+          [10.75, 11.5, WIN[1].hit, WIN[2].hit, 0, 0.26, 92, 92],
+          [11.5, 12.25, WIN[2].hit, WIN[3].hit, 0, 0.26, 92, 92],
+          [12.25, 13.65, WIN[3].hit, [RULE.x, RULE.y], 0, 0.42, 92, 130],
+        ];
+        let rot = 14;
+        for (const [t0, t1, a, b, e0, E, d0, d1] of legs) {
+          if (t < t1) {
+            const h = hopRel(t, t0, t1, a, b, e0, E);
+            return { x: h.x, y: h.y, e: h.e, d: lerp(d0, d1, h.s), tex: 1, op: 1, rot: rot + 320 * h.s };
+          }
+          rot += 320;
+        }
+        // 13.65 – 14.05 · one hop off the red rule into the full stop; then a small settle
+        if (t < 14.05) {
+          const s = prog(t, 13.65, 14.05);
+          return { x: lerp(RULE.x, DOT.x, s), y: lerp(RULE.y, DOT.y, s), e: 0.8 * s * (1 - s), d: lerp(130, DOT.d, s), tex: 1, op: 1, rot: rot + 200 * s };
+        }
+        const s = prog(t, 14.05, 14.3);
+        return { x: DOT.x, y: DOT.y, e: 0.14 * s * (1 - s), d: DOT.d, tex: 1, op: 1, rot: rot + 200 };
+      }
+
+      // ── type helpers ──
+      function slam(el, t, tin, tout) {
+        if (t < tin || t > tout + 0.14) { el.style.opacity = 0; return; }
+        const p = prog(t, tin, tin + 0.24), q = prog(t, tout, tout + 0.14);
+        const sc = 1.28 - 0.28 * ease.backOut(p);
+        el.style.opacity = clamp(p * 4) * (1 - q);
+        el.style.transform = `translateY(${-40 * (1 - ease.expoOut(p)) + 20 * q}px) scale(${sc}, ${sc * (1 + 0.08 * (1 - p))})`;
+      }
+      function swapIn(el, t, tin, tout) {
+        if (t < tin || t > tout + 0.12) { el.style.opacity = 0; return; }
+        const p = ease.expoOut(prog(t, tin, tin + 0.3)), q = prog(t, tout, tout + 0.12);
+        el.style.opacity = p * (1 - q);
+        el.style.transform = `translateY(${22 * (1 - p) - 16 * q}px)`;
+      }
+
+      const works = P.map((p) => $(p.id)), inners = P.map((p) => $(p.id).firstElementChild);
+      const wins = WIN.map((w) => $(w.id));
+      const WORDS = [ ["w-1", 2.63, 3.0], ["w-2", 3.05, 3.76], ["w-3", 3.81, 4.45], ["w-4", 4.49, 5.9],
+        ["v-1", 10.66, 11.45], ["v-2", 11.53, 12.2], ["v-3", 12.27, 13.2] ];
+      const ROW = [ [0.3, 2.8], [2.8, 4.0], [4.0, 4.9], [4.9, 5.55], [5.55, 6.05], [6.05, 9.0] ];
+      const ballEl = $("ball"), shadowEl = $("shadow"), b2 = $("b2");
+      const camG = $("camblur-g"), ballG = $("ballblur-g");
+
+      function screenOf(x, y, e, c, sh) {
+        return { x: c.ax + ((x - c.cx) * c.z) / (1 - e) + sh.x, y: c.ay + ((y - c.cy) * c.z) / (1 - e) + sh.y };
+      }
+
+      function render(t) {
+        const c = cam(t), sh = shake(t);
+        const ox = c.ax - c.cx * c.z + sh.x, oy = c.ay - c.cy * c.z + sh.y;
+        $("world").style.transform = `translate(${ox}px, ${oy}px) scale(${c.z})`;
+        const scene = $("scene");
+        scene.style.backgroundSize = `${400 * c.z}px`;
+        scene.style.backgroundPosition = `${ox}px ${oy}px`;
+
+        // camera travel blur: one envelope on the whole sheet, from the camera's own speed
+        const cp = cam(Math.max(0, t - 1 / 30));
+        const vx = (c.cx - cp.cx) * c.z + (c.ax - cp.ax), vy = (c.cy - cp.cy) * c.z + (c.ay - cp.ay);
+        const vz = Math.abs(Math.log(c.z / cp.z)) * 600;
+        const over = (v) => Math.max(0, v - 22); // px/frame below this reads sharp, like a real shutter at 180°
+        const bx = Math.min(32, over(Math.abs(vx) + vz) * 0.22), by = Math.min(32, over(Math.abs(vy) + vz) * 0.22);
+        if (bx + by > 0.6) { camG.setAttribute("stdDeviation", `${bx.toFixed(2)} ${by.toFixed(2)}`); scene.style.filter = "url(#camblur)"; }
+        else scene.style.filter = "none";
+
+        // paintings: each grows out of the point where the ball touched it
+        P.forEach((p, i) => {
+          const el = works[i];
+          el.style.left = `${p.cx - p.w / 2}px`; el.style.top = `${p.cy - p.h / 2}px`;
+          el.style.width = `${p.w}px`; el.style.height = `${p.h}px`;
+          if (i === 0) return;
+          const r = Math.hypot(p.w, p.h) * ease.expoOut(prog(t, T[i - 1], T[i - 1] + 0.55));
+          const cx = C[i - 1][0] - (p.cx - p.w / 2), cy = C[i - 1][1] - (p.cy - p.h / 2);
+          inners[i].style.clipPath = `circle(${r.toFixed(2)}px at ${cx}px ${cy}px)`;
+        });
+        // windows: the first opens around the painting; the rest grow out of each bounce
+        WIN.forEach((w, i) => {
+          const el = wins[i], left = w.cx - WW / 2, top = w.cy - WH / 2 - BAR;
+          el.style.left = `${left}px`; el.style.top = `${top}px`;
+          el.style.width = `${WW}px`; el.style.height = `${WH + BAR}px`;
+          const r0 = i === 0 ? 200 : 0;
+          const r = lerp(r0, Math.hypot(WW, WH + BAR), ease.expoOut(prog(t, w.tin, w.tin + (i === 0 ? 0.7 : 0.5))));
+          const vis = t >= w.tin ? 1 : 0;
+          el.style.opacity = vis;
+          el.firstElementChild.style.clipPath = `circle(${r.toFixed(2)}px at ${w.hit[0] - left}px ${w.hit[1] - top}px)`;
+        });
+
+        // HUD
+        WORDS.forEach(([id, a, b]) => slam($(id), t, a, b));
+        const st = $("stub");
+        st.style.opacity = prog(t, 2.68, 2.83) * (1 - prog(t, 5.9, 6.05));
+        st.style.transform = `scaleX(${ease.expoOut(prog(t, 2.68, 3.0))})`;
+        ROW.forEach(([a, b], i) => { swapIn($("l" + (i + 1)), t, a, b); swapIn($("r" + (i + 1)), t, a, i === 5 ? 6.6 : b); });
+        swapIn($("r7"), t, 6.72, 9.0);
+
+        // end card, drawn on the sheet: the ball's bounce on the rule writes the name in
+        document.querySelectorAll("#wm .ch").forEach((ch, i) => {
+          const a = 13.68 + i * 0.026, p = prog(t, a, a + 0.32);
+          ch.style.opacity = clamp(p * 5);
+          ch.style.transform = `translateY(${-60 * (1 - ease.backOut(p))}px) scaleY(${1 + 0.18 * (1 - p)})`;
+        });
+        const rp = t - 13.65;
+        const wob = rp > 0 ? Math.exp(-rp / 0.14) * Math.sin(rp * 2 * Math.PI * 8) : 0;
+        $("rule").style.transform = `scaleX(${ease.expoOut(prog(t, 12.9, 13.3)) * (1 + 0.12 * wob)}) scaleY(${1 - 0.35 * wob})`;
+        [["ls1", 15.36], ["ls2", 15.75]].forEach(([id, a]) => {
+          $(id).style.transform = `translateY(${110 * (1 - ease.expoOut(prog(t, a, a + 0.45)))}%)`;
+        });
+        [["url", 16.3], ["handle", 16.52]].forEach(([id, a]) => {
+          const p = ease.expoOut(prog(t, a, a + 0.4));
+          $(id).style.opacity = p;
+          $(id).style.transform = `translateY(${14 * (1 - p)}px)`;
+        });
+
+        // the ball and its shadow
+        const b = ballState(t);
+        const s = screenOf(b.x, b.y, b.e, c, sh);
+        const sq = squash(t), k = ((b.d * c.z) / (1 - b.e) / 512) * sq;
+        ballEl.style.opacity = b.op;
+        ballEl.style.transform = `translate(${s.x - 256}px, ${s.y - 256}px) scale(${k}, ${k * (2 - sq)}) rotate(${b.rot}deg)`;
+        b2.style.opacity = b.tex;
+        const bp = ballState(Math.max(0, t - 1 / 30)), sp = screenOf(bp.x, bp.y, bp.e, cp, shake(Math.max(0, t - 1 / 30)));
+        const bvx = Math.abs(s.x - sp.x), bvy = Math.abs(s.y - sp.y);
+        if (bvx + bvy > 30) { ballG.setAttribute("stdDeviation", `${(Math.min(40, bvx * 0.25) / k).toFixed(2)} ${(Math.min(40, bvy * 0.25) / k).toFixed(2)}`); ballEl.style.filter = "url(#ballblur)"; }
+        else ballEl.style.filter = "none";
+        // the shadow sits under the ball on the sheet, pushed away from the light as it rises
+        const g = screenOf(b.x + 0.35 * b.e * 260, b.y + 0.35 * b.e * 380, 0, c, sh);
+        const base = b.d * c.z, sk = (base * (1 + 0.8 * b.e)) / 512;
+        shadowEl.style.opacity = b.op * 0.42 * Math.pow(1 - b.e, 1.6) * (t > 6.3 && t < 9.9 ? 0 : 1);
+        shadowEl.style.transform = `translate(${g.x - 256 + base * 0.12}px, ${g.y - 256 + base * 0.16}px) scale(${sk * 1.05}, ${sk * 0.92})`;
+        shadowEl.style.filter = `blur(${(3 + 40 * b.e).toFixed(1)}px)`;
+      }
+
+      // Layout that needs glyph metrics: fit the rally words; set the end card and find its full stop.
+      function layout() {
+        document.querySelectorAll(".word").forEach((el) => {
+          el.style.fontSize = "200px";
+          const w = el.firstElementChild.getBoundingClientRect().width;
+          el.style.fontSize = `${Math.min(190, Math.floor((200 * (PORTRAIT ? 940 : 720)) / Math.max(1, w)))}px`;
+        });
+        $("world").style.transform = "none";
+        const ec = $("endcard"), wm = $("wm");
+        wm.style.fontSize = "100px";
+        const chars = wm.querySelectorAll(".ch, #dotslot");
+        const w100 = chars[chars.length - 1].getBoundingClientRect().right - chars[0].getBoundingClientRect().left;
+        const F = Math.floor((100 * 1040) / w100);
+        wm.style.fontSize = `${F}px`;
+        const W = 1200;
+        ec.style.width = `${W}px`; ec.style.left = `${ENDC.cx - W / 2}px`; ec.style.top = `${ENDC.top}px`;
+        const wmH = F * 0.82;
+        $("rule").style.left = `${W / 2 - 55}px`; $("rule").style.top = `${wmH + 0.28 * F}px`;
+        const ls = $("ls"); ls.style.top = `${wmH + 0.28 * F + 34}px`; ls.style.fontSize = `${Math.round(F * 0.5)}px`;
+        const lsBottom = wmH + 0.28 * F + 34 + F * 0.5 * 1.14;
+        $("url").style.top = `${lsBottom + 30}px`; $("url").style.fontSize = `${Math.round(F * 0.19)}px`;
+        $("handle").style.top = `${lsBottom + 30 + F * 0.25}px`; $("handle").style.fontSize = `${Math.round(F * 0.16)}px`;
+        // world coords are page coords while the world is untransformed
+        const root = $("root").getBoundingClientRect(), r = $("dotslot").getBoundingClientRect(), rr = $("rule").getBoundingClientRect();
+        DOT = { x: r.left - root.left + r.width / 2, y: r.top - root.top + r.height / 2, d: r.width * 1.1 };
+        RULE = { x: rr.left - root.left + rr.width / 2, y: rr.top - root.top - 30 };
+      }
+
+      const state = { t: 0 };
+      const build = () => {
+        layout();
+        const tl = gsap.timeline({ paused: true });
+        tl.to(state, { t: END, duration: END, ease: "none", onUpdate: () => render(state.t) }, 0);
+        render(0);
+        window.__timelines["main"] = tl;
+      };
+      Promise.all([document.fonts.load("900 100px Archivo"), document.fonts.load("700 30px Archivo"), document.fonts.load("500 30px Archivo")]).then(build, build);
+    </script>
+  </body>
+</html>

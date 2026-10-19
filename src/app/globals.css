@@ -2,6 +2,8 @@
 :root {
   --ink: #201e1d;
   --paper: #f3f2f2;
+  /* Drawing-paper tooth over the paper colour (scripts/paper-texture.mjs). */
+  --paper-bg: var(--paper) url("/paper-texture.webp") 0 0 / 512px 512px repeat;
   --red: #ec3013;
   /* Court red, deepened just enough for small text on paper (WCAG AA). */
   --red-text: #c4260c;
@@ -28,7 +30,7 @@ html {
 html,
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--paper-bg);
   overflow-x: hidden;
   overflow-x: clip;
 }
@@ -317,7 +319,7 @@ html.lenis body {
   height: 100svh;
   min-height: 560px;
   overflow: hidden;
-  background: var(--paper);
+  background: var(--paper-bg);
   color: var(--ink);
 }
 
@@ -385,6 +387,18 @@ html.lenis body {
   display: block;
   color: rgba(32, 30, 29, var(--hl-fill, 1));
   -webkit-text-stroke: calc(var(--hl-stroke, 0) * 0.012em) rgba(236, 48, 19, var(--hl-stroke, 0));
+}
+
+/* The name's twin inside the window: a fine paper outline, drawn over the portrait where the
+   ink letters would vanish on ink. It gives way to the red outline as the window opens.
+   Hidden until the clip is first synced to the window (see the hero effect). */
+.hero-ghost {
+  clip-path: inset(50%);
+}
+
+.hero-ghost .hero-letter {
+  color: transparent;
+  -webkit-text-stroke: max(0.0055em, 1.6px) rgba(243, 242, 242, var(--hl-fill, 1));
 }
 
 
@@ -458,7 +472,7 @@ html.js-motion [data-hero-pre] {
 /* ── Selected work ──────────────────────────────────────────────────────── */
 .work {
   position: relative;
-  background: var(--paper);
+  background: var(--paper-bg);
   color: var(--ink);
   padding: clamp(90px, 16vh, 200px) var(--gutter) clamp(60px, 10vh, 140px);
 }
@@ -638,7 +652,7 @@ html.js-motion [data-hero-pre] {
 /* ── Art ────────────────────────────────────────────────────────────────── */
 .art {
   position: relative;
-  background: var(--paper);
+  background: var(--paper-bg);
   color: var(--ink);
 }
 
@@ -872,7 +886,7 @@ html.js-motion [data-hero-pre] {
   .site-header {
     mix-blend-mode: normal;
     color: var(--ink);
-    background: var(--paper);
+    background: var(--paper-bg);
     padding-top: 12px;
     padding-bottom: 12px;
   }
@@ -1048,7 +1062,7 @@ html.js-motion [data-hero-pre] {
 .about {
   position: relative;
   overflow: hidden;
-  background: var(--paper);
+  background: var(--paper-bg);
   color: var(--ink);
   padding: clamp(80px, 14vh, 160px) 0 clamp(60px, 10vh, 120px);
 }

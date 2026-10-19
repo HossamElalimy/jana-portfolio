@@ -28,7 +28,7 @@ export const copy = {
     featuredTitle: "Ball on Blue",
     featuredCaption: "Original painting · Jana Ezzeldin",
     title: "Paintings",
-    intro: "Four originals by Jana, plus six marked stand-ins that hold the place of the full collection.",
+    intro: "Six originals by Jana, plus six marked stand-ins that hold the place of the full collection.",
     original: "Original",
     standIn: "Preview stand-in",
     browseHint: "Drag or swipe to browse",

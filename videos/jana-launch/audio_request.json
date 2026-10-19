@@ -1,0 +1,33 @@
+{
+  "provider": "kokoro",
+  "speed": "1.0",
+  "lines": [
+    {
+      "id": "01",
+      "text": "Some paintings don't sit still."
+    },
+    {
+      "id": "02",
+      "text": "Jana's paintings... are getting... a home."
+    },
+    {
+      "id": "03",
+      "text": "Every brushstroke, up close."
+    },
+    {
+      "id": "04",
+      "text": "Her paintings, her designs, all in one place."
+    },
+    {
+      "id": "05",
+      "text": "Paintings by Jana. Launching soon. Follow along so you don't miss it."
+    }
+  ],
+  "bgm": {
+    "mode": "retrieve",
+    "query": "warm upbeat feel-good indie-pop acoustic, celebratory summery instrumental, 110-125 BPM",
+    "blob": "Jana's work is getting a home — launching soon",
+    "arc": "Hook (serve) → Rally (the work, accelerating) → Hold (Ball on Blue) → The home (the site) → CTA"
+  },
+  "voice": "af_heart"
+}
