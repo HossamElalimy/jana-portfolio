@@ -330,11 +330,23 @@ html.lenis body {
   bottom: 22%;
   left: 32%;
   overflow: hidden;
-  background: var(--char);
+  background: var(--ink); /* matches the portrait's ink ground as it slides */
 }
 
 .hero-img {
   object-fit: cover;
+}
+
+/* The portrait is a fixed, screen-sized canvas centred on the window (it never resizes);
+   the scroll timeline slides it vertically (face centred → full bust). */
+.hero-veil {
+  position: absolute;
+  left: calc(50% - 50vw);
+  top: calc(50% - 50vh);
+  top: calc(50% - 50svh);
+  width: 100vw;
+  height: 100vh;
+  height: 100svh;
 }
 
 .hero-title {
@@ -358,15 +370,24 @@ html.lenis body {
   display: flex;
 }
 
+/* Clips the letters as they rise in. Extra side room (cancelled by negative margins) keeps
+   the outline from being cut where a glyph's edge meets its box, as on the final A. */
 .hero-letter-mask {
   display: block;
   overflow: hidden;
-  padding: 0.03em 0.02em 0 0;
+  padding: 0.03em 0.05em 0.02em 0.03em;
+  margin: 0 -0.03em 0 -0.03em;
 }
 
+/* Solid ink over paper; as the window opens onto the dark portrait the letters turn into
+   a court-red outline with no fill (the custom properties are driven by the scroll timeline). */
 .hero-letter {
   display: block;
+  color: rgba(32, 30, 29, var(--hl-fill, 1));
+  -webkit-text-stroke: calc(var(--hl-stroke, 0) * 0.012em) rgba(236, 48, 19, var(--hl-stroke, 0));
 }
+
+
 
 .hero-sub {
   position: absolute;
@@ -706,7 +727,9 @@ html.js-motion [data-hero-pre] {
 @supports (clip-path: inset(0 0 -100vh 0)) {
   .cut {
     overflow: visible;
-    clip-path: inset(0 0 -100vh 0);
+    clip-path: inset(0 0 -160vh 0);
+    /* Above the sections that follow, so the falling ball flies over the carousel. */
+    z-index: 3;
   }
 }
 
@@ -715,87 +738,153 @@ html.js-motion [data-hero-pre] {
   padding-top: clamp(60px, 10vh, 120px);
 }
 
-.gal {
-  position: relative;
-  display: flex;
-  align-items: center;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: clamp(60px, 10vh, 120px);
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--gutter);
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-}
-
-.gal::-webkit-scrollbar {
-  display: none;
-}
-
-.track {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: clamp(16px, 3.4vw, 56px);
-  padding: clamp(32px, 6vh, 60px) var(--gutter);
-}
-
-.gal-item {
-  flex: none;
+/* Paintings: the WebGL carousel (FlexCarousel), with a cue that it scrolls sideways */
+.gal-block {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  text-align: start;
-  cursor: pointer;
-  scroll-snap-align: center;
 }
 
-/* Every painting sits in the same square frame. */
-.gal-frame {
-  position: relative;
-  display: block;
-  overflow: hidden;
-  background: var(--frame);
-  height: min(56vh, 76vw);
-  aspect-ratio: 1;
+.gal-hint-short {
+  display: none;
 }
-
-.gal-cap {
+.gal-controls {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
+  margin: clamp(20px, 4vh, 40px) var(--gutter) 0;
+}
+
+.gal-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 14px;
+  font-weight: 700;
 }
 
-.tag-real {
+.gal-hint-arrow {
+  display: inline-block;
   color: var(--red-text);
+}
+
+.gal-hint-arrow-l {
+  animation: gal-nudge-l 1.6s ease-in-out infinite;
+}
+
+.gal-hint-arrow-r {
+  animation: gal-nudge-r 1.6s ease-in-out infinite;
+}
+
+@keyframes gal-nudge-l {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-6px); }
+}
+
+@keyframes gal-nudge-r {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+
+.gal-nav {
+  display: flex;
+  border: 2px solid var(--ink);
+}
+
+.gal-nav button {
+  min-width: 52px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.gal-nav button + button {
+  border-inline-start: 2px solid var(--ink);
+}
+
+.gal-nav button:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gal-hint-arrow-l,
+  .gal-hint-arrow-r {
+    animation: none;
+  }
+}
+
+.gal-carousel {
+  position: relative;
+  height: clamp(480px, 82vh, 880px);
+  margin-top: clamp(16px, 3vh, 40px);
+  color: var(--ink);
+}
+
+.gal-carousel .flex-carousel:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--red);
+}
+
+.gal-carousel .flex-carousel__title {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.gal-carousel .flex-carousel__subtitle {
+  font-size: 14px;
   font-weight: 500;
 }
 
-.tag-stand {
-  color: var(--stand);
-  font-weight: 500;
+.gal-carousel .flex-carousel__count {
+  font-size: 13px;
+  font-weight: 700;
 }
 
-@media (min-width: 900px) {
-  .gal {
-    height: 100vh;
-    height: 100svh;
-    overflow: hidden;
-    padding-bottom: 0;
-    scroll-snap-type: none;
+@media (max-width: 899px) {
+  .gal-carousel {
+    height: min(66svh, 560px);
   }
 
-  .gal-frame {
-    height: 62vh;
+  /* Phones: the cue sits under the carousel, short, so it never meets the header. */
+  .gal-controls {
+    order: 2;
+    margin-top: 4px;
+  }
+
+  .gal-hint-long {
+    display: none;
+  }
+
+  .gal-hint-short {
+    display: inline;
   }
 }
 
+/* Phones and small screens: the header gets its own paper bar, so content scrolling
+   underneath never collides with the brand or the menu button. */
+@media (max-width: 899px) {
+  .site-header {
+    mix-blend-mode: normal;
+    color: var(--ink);
+    background: var(--paper);
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .site-header .brand,
+  .site-header .menu-btn {
+    color: var(--ink);
+  }
+}
+
+/* The studio photo sits in the middle of its painted extension, shown whole at every
+   size; on phones it runs edge to edge so it stays as large as possible. */
 .studio {
   display: flex;
   flex-direction: column;
@@ -807,19 +896,29 @@ html.js-motion [data-hero-pre] {
   position: relative;
   overflow: hidden;
   width: 100%;
-  max-width: 1100px;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 2304 / 960;
   background: var(--frame);
+}
+
+.studio-img img {
+  object-position: center;
 }
 
 .studio-cap {
   display: flex;
+  justify-content: center;
   gap: 8px 24px;
   flex-wrap: wrap;
-  max-width: 1100px;
   padding-top: 14px;
   border-top: 2px solid var(--ink);
   font-size: 14px;
+}
+
+@media (max-width: 899px) {
+  .studio-img {
+    width: calc(100% + 2 * var(--gutter));
+    margin-inline: calc(-1 * var(--gutter));
+  }
 }
 
 /* ── Graphic design ─────────────────────────────────────────────────────── */

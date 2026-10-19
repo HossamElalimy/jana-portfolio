@@ -9,6 +9,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Never ship source maps to the browser, and don't load them during prerendering.
+  productionBrowserSourceMaps: false,
+  enablePrerenderSourceMaps: false,
   images: {
     formats: ["image/avif", "image/webp"],
     qualities: [75, 85],

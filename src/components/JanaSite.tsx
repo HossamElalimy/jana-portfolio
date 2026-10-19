@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
-import Image, { getImageProps } from "next/image";
+import Image, { getImageProps, type StaticImageData } from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -10,9 +10,12 @@ import Lenis from "lenis";
 import { copy } from "@/lib/content";
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/site";
 import { ART_LIST, BY_ID, DESIGN_LIST, HERO, SELECTED, WORK, pad, type Kind } from "@/lib/works";
-import studioEasels from "@/assets/studio-easels.jpg";
+import studioWide from "@/assets/studio-wide.jpg";
 import portrait from "@/assets/jana-portrait-bw.jpg";
 import painting02 from "@/assets/jana-painting-02.jpg";
+import heroVeil from "@/assets/jana-hero-veil.jpg";
+import DitherVeil from "@/components/reactbits/DitherVeil";
+import FlexCarousel, { type FlexCarouselItem } from "@/components/reactbits/FlexCarousel";
 
 declare global {
   interface Window {
@@ -39,7 +42,38 @@ const WIN_OPEN: Inset = { top: "0%", right: "0%", bottom: "0%", left: "0%" };
 const LIFT = { scale: 1.38, yPercent: -34 };
 const SLICES_END_SCALE = 0.9;
 
+// Carousel layout (must match the FlexCarousel props below) and where the ball sits inside
+// "Ball on Blue" (fractions of the painting), so the lifted ball can land exactly on it.
+const CAROUSEL_CARD_HEIGHT = 0.56;
+const CAROUSEL_CARD_HEIGHT_PHONE = 0.42; // smaller cards on narrow screens
+
+const PHONE_QUERY = "(max-width: 899px)";
+const subscribePhone = (onChange: () => void) => {
+  const mq = window.matchMedia(PHONE_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+};
+const isPhone = () => window.matchMedia(PHONE_QUERY).matches;
+const CAROUSEL_GAP = 12;
+const CAROUSEL_IMAGE_ZOOM = 1.08; // the carousel shows each image slightly zoomed in its card
+const BALL_IN_PAINTING = { x: 0.504, y: 0.479, d: 0.44 };
+
 const canHover = () => window.matchMedia("(min-width: 900px) and (hover: hover)").matches;
+
+/** A Next-optimised URL for a static image (the WebGL components load their own textures). */
+const optimised = (img: StaticImageData, width: number) => `/_next/image?url=${encodeURIComponent(img.src)}&w=${width}&q=75`;
+
+const CAROUSEL: FlexCarouselItem[] = ART_LIST.map((id) => {
+  const w = BY_ID[id];
+  return {
+    src: optimised(w.img, 1080),
+    alt: w.title,
+    title: w.title,
+    subtitle: w.real ? copy.art.original : copy.art.standIn,
+  };
+});
+
+const VEIL_SRC = optimised(heroVeil, 1920);
 
 /* ── Viewer images ───────────────────────────────────────────────────────
    The viewer shows an optimised, screen-sized copy (not the original file),
@@ -134,6 +168,24 @@ export default function JanaSite() {
   const zRef = useRef(1);
   const quickRef = useRef<{ x: gsap.QuickToFunc; y: gsap.QuickToFunc } | null>(null);
   const prevFilterRef = useRef<Filter>("all");
+  const galRef = useRef<HTMLDivElement>(null);
+  /** 0 → 1 as the hero portrait blows away on scroll (read by the veil every frame). */
+  const veilDissolve = useRef(0);
+  /** The carousel's active card, so the falling ball can find "Ball on Blue". */
+  const carouselActive = useRef(0);
+  const phone = useSyncExternalStore(subscribePhone, isPhone, () => false);
+  const cardHeight = phone ? CAROUSEL_CARD_HEIGHT_PHONE : CAROUSEL_CARD_HEIGHT;
+  /** Current card height, read by the falling ball's landing maths. */
+  const cardHeightRef = useRef(cardHeight);
+  useEffect(() => {
+    cardHeightRef.current = cardHeight;
+  }, [cardHeight]);
+
+  /** Steps the carousel by sending it the arrow key it already understands. */
+  const nudgeCarousel = (dir: 1 | -1) => {
+    const el = galRef.current?.querySelector<HTMLElement>(".flex-carousel");
+    el?.dispatchEvent(new KeyboardEvent("keydown", { key: dir > 0 ? "ArrowRight" : "ArrowLeft", bubbles: true }));
+  };
 
   const lockScroll = useCallback((on: boolean) => {
     document.documentElement.style.overflow = on ? "hidden" : "";
@@ -167,6 +219,7 @@ export default function JanaSite() {
         const { d, ok } = ctx.conditions as { d: boolean; ok: boolean };
         if (!ok) {
           root.classList.remove("js-motion");
+          veilDissolve.current = 0;
           return;
         }
         const E = "expo.out";
@@ -191,17 +244,39 @@ export default function JanaSite() {
               0.7 + i * 0.42,
             );
         });
+        // Once the portrait is in, hide the frames beneath it: as it slides to centre the face,
+        // the gap above it shows the window's ink ground instead of the previous picture.
+        tl.set(imgs.slice(0, -1), { autoAlpha: 0 }, 0.7 + (imgs.length - 1) * 0.42 + 0.8);
         tl.fromTo("[data-hsub]", { yPercent: 110 }, { yPercent: 0, duration: 1.1, ease: E, stagger: 0.08 }, "-=.7");
         // The hero is hidden by CSS until its intro has set its starting state.
         gsap.set("[data-hero-pre]", { opacity: 1 });
 
-        // Hero: the window opens to full bleed as the name splits apart
+        // Hero: the window opens to full bleed as the name splits apart; the portrait slides
+        // from "face centred in the window" to its full framing (hair, neck, shoulders, chest).
+        // Where the face sits in the portrait image (fraction from the top) and its aspect ratio:
+        const FACE_Y = 0.32, PORTRAIT_RATIO = 1.6;
+        const faceOffset = () => {
+          const vw = window.innerWidth, vh = window.innerHeight;
+          const shown = Math.max(vh, vw / PORTRAIT_RATIO); // height of the image under "cover"
+          return (0.5 - FACE_Y) * shown;
+        };
         gsap
-          .timeline({ scrollTrigger: { trigger: "[data-hero]", start: "top top", end: "+=110%", scrub: 0.8, pin: true } })
-          .fromTo("[data-hwin]", WIN, { ...WIN_OPEN, ease: "power2.inOut", immediateRender: false }, 0)
-          .to('[data-hside="l"]', { xPercent: -80, ease: "power2.in" }, 0)
-          .to('[data-hside="r"]', { xPercent: 80, ease: "power2.in" }, 0)
-          .to("[data-hsubw]", { opacity: 0, y: -40, ease: "none" }, 0);
+          .timeline({ scrollTrigger: { trigger: "[data-hero]", start: "top top", end: "+=110%", scrub: 0.8, pin: true, invalidateOnRefresh: true } })
+          .fromTo("[data-hwin]", WIN, { ...WIN_OPEN, ease: "power2.inOut", immediateRender: false, duration: 1 }, 0)
+          .fromTo(".hero-veil", { y: faceOffset }, { y: 0, ease: "power2.inOut", duration: 1 }, 0)
+          // Over the dark portrait the name turns into a red outline with no fill
+          .fromTo(".hero-title", { "--hl-fill": 1, "--hl-stroke": 0 }, { "--hl-fill": 0, "--hl-stroke": 1, ease: "power1.inOut", immediateRender: false, duration: 1 }, 0)
+          .to('[data-hside="l"]', { xPercent: -80, ease: "power2.in", duration: 1 }, 0)
+          .to('[data-hside="r"]', { xPercent: 80, ease: "power2.in", duration: 1 }, 0)
+          .to("[data-hsubw]", { opacity: 0, y: -40, ease: "none", duration: 1 }, 0);
+
+        // Then, as "Selected work" rises in, the portrait blows away like sand in the wind
+        // (no pin here, so the next section arrives straight away — no empty screen).
+        const veil = { v: 0 };
+        gsap
+          .timeline({ scrollTrigger: { trigger: "#work", start: "top bottom", end: "top 20%", scrub: 0.6 } })
+          .to(veil, { v: 1, ease: "power1.in", duration: 1, onUpdate: () => void (veilDissolve.current = veil.v) }, 0)
+          .to(".hero-title", { opacity: 0, ease: "none", duration: 0.5 }, 0.15);
 
         $("[data-rise]").forEach((el) =>
           gsap.from(el, { yPercent: 100, duration: 1.2, ease: E, scrollTrigger: { trigger: el.parentElement, start: "top 88%" } }),
@@ -235,41 +310,99 @@ export default function JanaSite() {
             .to(slices, { scale: SLICES_END_SCALE, xPercent: -6, duration: 1, ease: "power2.inOut" }, 1.05)
             .from("[data-cutcap]", { opacity: 0, y: 24, duration: 0.4 }, 1.5);
 
-          // …then drops out of the painting, bounces on the "Paintings" rule below and fades.
-          // Distances come from layout (not transforms), so they stay right after any resize.
-          const dropDistance = () => {
-            const headTop = head.getBoundingClientRect().top + window.scrollY;
-            const cutTop = headTop - cut.offsetHeight; // the cut sits directly above the heading once unpinned
-            const S = slices.offsetHeight;
-            const h = ballWrap.offsetHeight;
-            const liftedBottom = ballWrap.offsetTop + h / 2 + (LIFT.yPercent / 100) * h + (LIFT.scale * h) / 2;
-            const ballBottom = cutTop + slices.offsetTop + S / 2 + (liftedBottom - S / 2) * SLICES_END_SCALE;
-            const floor = headTop + head.offsetHeight - 2;
-            // The wrapper lives inside the scaled painting, so undo that scale.
-            return (floor - ballBottom) / SLICES_END_SCALE;
-          };
-          gsap
-            .timeline({
-              scrollTrigger: { trigger: head, start: "top bottom", end: "bottom 40%", scrub: 0.6, invalidateOnRefresh: true },
-            })
-            .fromTo(ballWrap, { y: 0 }, { y: dropDistance, ease: "bounce.out", duration: 1, immediateRender: false })
-            .to(ballWrap, { autoAlpha: 0, scale: 0.85, duration: 0.3, ease: "power1.in" }, ">-0.02");
-        }
+          // …then drops out of the painting, bounces on the "Paintings" rule, and keeps falling
+          // with the scroll until it settles into "Ball on Blue" in the carousel below.
+          // Positions come from layout (not transforms), so they stay right after any resize.
+          const gal = document.querySelector<HTMLElement>("[data-gal]");
+          const bounce = gsap.parseEase("bounce.out");
+          const glide = gsap.parseEase("power2.inOut");
+          const pageTop = (el: HTMLElement) => el.getBoundingClientRect().top + window.scrollY;
 
-        // Paintings: horizontal pinned track on desktop, native swipe on mobile
-        const track = document.querySelector<HTMLElement>("[data-track]");
-        if (d && track) {
-          const dist = () => Math.max(0, track.scrollWidth - window.innerWidth);
-          gsap.to(track, {
-            x: () => -dist(),
+          /** Page position and diameter of the lifted ball while its wrapper has no offset. */
+          const ballHome = () => {
+            const cutTop = pageTop(head) - cut.offsetHeight; // the cut sits right above the heading once unpinned
+            const cutLeft = cut.getBoundingClientRect().left + window.scrollX;
+            const S = slices.offsetWidth;
+            const h = ballWrap.offsetHeight;
+            const lx = ballWrap.offsetLeft + h / 2 + 0.26 * h;
+            const ly = ballWrap.offsetTop + h / 2 + (LIFT.yPercent / 100) * h;
+            return {
+              x: cutLeft + slices.offsetLeft + S / 2 - 0.06 * S + (lx - S / 2) * SLICES_END_SCALE,
+              y: cutTop + slices.offsetTop + S / 2 + (ly - S / 2) * SLICES_END_SCALE,
+              d: h * LIFT.scale * SLICES_END_SCALE,
+            };
+          };
+
+          /** Page position and diameter of the painted ball in the "Ball on Blue" card. */
+          const cardBall = () => {
+            if (!gal) return null;
+            const r = gal.getBoundingClientRect();
+            const cardH = r.height * cardHeightRef.current;
+            const widths = ART_LIST.map((id) => (BY_ID[id].img.width / BY_ID[id].img.height) * cardH);
+            const centers: number[] = [];
+            let run = 0;
+            for (const w of widths) {
+              centers.push(run + w / 2);
+              run += w + CAROUSEL_GAP;
+            }
+            const target = ART_LIST.indexOf("a02");
+            const rel = ((((centers[target] - centers[carouselActive.current] + run / 2) % run) + run) % run) - run / 2;
+            const cw = widths[target];
+            return {
+              x: r.left + window.scrollX + r.width / 2 + rel + (BALL_IN_PAINTING.x - 0.5) * cw * CAROUSEL_IMAGE_ZOOM,
+              y: pageTop(gal) + r.height / 2 + (BALL_IN_PAINTING.y - 0.5) * cardH * CAROUSEL_IMAGE_ZOOM,
+              d: BALL_IN_PAINTING.d * cw * CAROUSEL_IMAGE_ZOOM,
+            };
+          };
+
+          const flight = { p: 0 };
+          const LAND = 0.42; // share of the scroll spent dropping and bouncing on the rule
+          const place = () => {
+            const p = flight.p;
+            const home = ballHome();
+            const landY = pageTop(head) + head.offsetHeight - 2 - home.d / 2;
+            let px = home.x;
+            let py: number;
+            let scale = 1;
+            let alpha = 1;
+            if (p <= LAND) {
+              py = home.y + (landY - home.y) * bounce(p / LAND);
+            } else {
+              const q = (p - LAND) / (1 - LAND);
+              const e = glide(q);
+              const to = cardBall();
+              if (!to) {
+                py = landY;
+                alpha = 1 - q;
+              } else {
+                px = home.x + (to.x - home.x) * e;
+                py = landY + (to.y - landY) * e - Math.sin(Math.PI * e) * 70; // a small hop on the way
+                scale = 1 + (to.d / home.d - 1) * e;
+                alpha = q < 0.84 ? 1 : 1 - (q - 0.84) / 0.16; // melt into the painted ball
+              }
+            }
+            // The wrapper lives inside the scaled painting, so undo that scale; it scales around
+            // the lifted ball's centre (76% / 16% of the wrapper).
+            gsap.set(ballWrap, {
+              x: (px - home.x) / SLICES_END_SCALE,
+              y: (py - home.y) / SLICES_END_SCALE,
+              scale,
+              autoAlpha: alpha,
+              transformOrigin: "76% 16%",
+            });
+          };
+          gsap.to(flight, {
+            p: 1,
             ease: "none",
+            onUpdate: place,
             scrollTrigger: {
-              trigger: "[data-gal]",
-              start: "top top",
-              end: () => "+=" + dist(),
+              trigger: head,
+              start: "top bottom",
+              endTrigger: gal ?? head,
+              end: gal ? "center 55%" : "bottom 40%",
               scrub: 0.6,
-              pin: true,
               invalidateOnRefresh: true,
+              onRefresh: place,
             },
           });
         }
@@ -703,7 +836,8 @@ export default function JanaSite() {
                   src={img}
                   alt=""
                   fill
-                  sizes={i === HERO.length - 1 ? "100vw" : "(min-width: 900px) 40vw, 64vw"}
+                  // Only ever seen inside the small window; the portrait covers them at full bleed.
+                  sizes="(min-width: 900px) 40vw, 64vw"
                   quality={85}
                   // Frames start inside a closed window and are revealed in sequence, so none is preloaded.
                   fetchPriority={i === 0 ? "high" : "auto"}
@@ -711,6 +845,30 @@ export default function JanaSite() {
                   className="hero-img"
                 />
               ))}
+              {/* Jana, dithered in ink on paper; the cursor (or a slow wander on touch) reveals the photo. */}
+              <div data-hi="" className="hero-veil">
+                <DitherVeil
+                  src={VEIL_SRC}
+                  fit="cover"
+                  pattern="floyd"
+                  pixelSize={2}
+                  levels={2}
+                  palette="duotone"
+                  inkColor="#201e1d"
+                  paperColor="#f3f2f2"
+                  contrast={1.2}
+                  brightness={0.02}
+                  revealRadius={170}
+                  softness={0.6}
+                  linger={1.1}
+                  rimColor="#ec3013"
+                  rim={0.22}
+                  wander
+                  clickBurst
+                  twinkle
+                  dissolve={veilDissolve}
+                />
+              </div>
             </div>
             <h1 className="hero-title" data-hero-pre="">
               <span className="sr-only">{copy.hero.h1}</span>
@@ -828,42 +986,51 @@ export default function JanaSite() {
               </div>
               <p className="intro">{copy.art.intro}</p>
             </div>
-            <div data-gal="" className="gal">
-              <div data-track="" className="track">
-                {ART_LIST.map((id, i) => {
-                  const w = BY_ID[id];
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className="gal-item"
-                      aria-haspopup="dialog"
-                      aria-label={`${copy.work.open} ${w.title}`}
-                      onClick={(e) => open(id, e.currentTarget, ART_LIST)}
-                      {...primeProps(id)}
-                    >
-                      <span className="gal-frame">
-                        <Image src={w.img} alt={w.title} fill sizes="(min-width: 900px) 62vh, 76vw" placeholder="blur" className="cover" />
-                      </span>
-                      <span className="gal-cap">
-                        <span className="b">
-                          {pad(i + 1)} {w.title}
-                        </span>
-                        <span className={w.real ? "tag-real" : "tag-stand"}>{w.real ? copy.art.original : copy.art.standIn}</span>
-                      </span>
-                    </button>
-                  );
-                })}
+            <div className="gal-block">
+            <div className="gal-controls">
+              <span className="gal-hint" aria-hidden="true">
+                <span className="gal-hint-arrow gal-hint-arrow-l">←</span>
+                <span className="gal-hint-long">{copy.art.browseHint}</span>
+                <span className="gal-hint-short">{copy.art.browseHintShort}</span>
+                <span className="gal-hint-arrow gal-hint-arrow-r">→</span>
+              </span>
+              <div className="gal-nav">
+                <button type="button" aria-label={copy.art.prevPainting} onClick={() => nudgeCarousel(-1)}>
+                  ←
+                </button>
+                <button type="button" aria-label={copy.art.nextPainting} onClick={() => nudgeCarousel(1)}>
+                  →
+                </button>
               </div>
+            </div>
+            <div ref={galRef} data-gal="" className="gal-carousel">
+              <FlexCarousel
+                items={CAROUSEL}
+                preset="liquid"
+                intro="rise"
+                cardHeight={cardHeight}
+                gap={CAROUSEL_GAP}
+                onChange={(index) => {
+                  carouselActive.current = index;
+                }}
+                squeeze={0.2}
+                fit="natural"
+                radius={0}
+                focusOnClick
+                captions
+                // Vertical wheel keeps scrolling the page; drag, swipe, arrows and sideways wheel move the carousel.
+                captureWheel={false}
+              />
+            </div>
             </div>
 
             <figure className="studio">
               <div data-dimg="" className="studio-img">
                 <Image
-                  src={studioEasels}
+                  src={studioWide}
                   alt={copy.art.studioAlt}
                   fill
-                  sizes="(min-width: 1180px) 1100px, 100vw"
+                  sizes="100vw"
                   placeholder="blur"
                   className="cover"
                 />

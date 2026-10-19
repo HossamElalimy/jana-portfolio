@@ -45,6 +45,12 @@ cp .env.example .env.local   # NEXT_PUBLIC_SITE_URL=https://your-domain
 
 To add real work, drop the image into `src/assets/`, import it in `src/lib/works.ts`, and set `real: true`.
 
+- `jana-hero-veil.jpg` — the sculpted bust in the hero (rendered by `scripts/sculpt-bust.mjs`, a small
+  ray-marched model), shown through the dither veil. `studio-wide.jpg` — the studio photo with its
+  painted extension (`npm run paint`).
+- `src/components/reactbits/` — FlexCarousel and DitherVeil from React Bits (WebGL, `ogl`). DitherVeil
+  has two site additions: `twinkle` (star-like dots) and `dissolve` (the sand-in-the-wind exit).
+
 ### Adding a painting from a phone photo
 
 Keep the raw photo in `source-photos/`, then straighten it to the canvas (perspective-corrected, cropped

@@ -56,6 +56,6 @@ export const SELECTED = ["a01", "d01", "a09", "a02", "d03", "a10", "d02", "d04"]
 export const ART_LIST = ["a01", "a02", "a09", "a10", "a03", "a04", "a05", "a06", "a07", "a08"];
 export const DESIGN_LIST = ["d01", "d02", "d03", "d04"];
 /** Revealed one after another in the hero window; the last one opens to full bleed. */
-export const HERO = [design03, preview07, design01, preview03, design04, heroCourt];
+export const HERO = [design03, preview07, design01, preview03, heroCourt];
 
 export const pad = (n: number) => String(n).padStart(2, "0");
