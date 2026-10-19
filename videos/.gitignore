@@ -10,7 +10,8 @@ jana-launch-portrait/
 jana-launch/capture/
 jana-launch/assets/site/
 jana-launch/assets/bgm/track.mp3
-# intermediate renders; the mastered finals are kept
-jana-launch/renders/*
-!jana-launch/renders/paintingsbyjana-launching-soon-16x9.mp4
-!jana-launch/renders/paintingsbyjana-launching-soon-9x16.mp4
+# rendered videos never go to GitHub
+**/renders/
+*.mp4
+*.mov
+*.webm
