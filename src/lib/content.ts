@@ -53,6 +53,10 @@ export const copy = {
     title: "Jana is an artist and a graphic designer.",
     body: "One practice, two languages: paint on canvas, and type on the grid. The colour of the studio carries into the design work, and the discipline of the design work carries back into the paintings.",
   },
+  sound: {
+    label: "Sound",
+    hint: "Background music",
+  },
   contact: {
     label: "Contact",
     /** One unit of the looping marquee; repeated to fill the line seamlessly. */

@@ -16,6 +16,7 @@ import painting02 from "@/assets/jana-painting-02.jpg";
 import heroVeil from "@/assets/jana-hero-veil.jpg";
 import DitherVeil from "@/components/reactbits/DitherVeil";
 import FlexCarousel, { type FlexCarouselItem } from "@/components/reactbits/FlexCarousel";
+import { SoundToggle } from "@/components/Sound";
 
 declare global {
   interface Window {
@@ -853,16 +854,19 @@ export default function JanaSite() {
               </a>
             ))}
           </nav>
-          <button
-            ref={menuBtnRef}
-            type="button"
-            className="menu-btn"
-            aria-expanded={menuOpen}
-            aria-controls="site-menu"
-            onClick={() => menu(true)}
-          >
-            {copy.menu}
-          </button>
+          <div className="header-actions">
+            <SoundToggle />
+            <button
+              ref={menuBtnRef}
+              type="button"
+              className="menu-btn"
+              aria-expanded={menuOpen}
+              aria-controls="site-menu"
+              onClick={() => menu(true)}
+            >
+              {copy.menu}
+            </button>
+          </div>
         </header>
 
         <main id="main" tabIndex={-1}>
